@@ -20,7 +20,7 @@ enum ESCCalibrationModes {
 // check if we should enter esc calibration mode
 void Copter::esc_calibration_startup_check()
 {
-#if FRAME_CONFIG != HELI_FRAME
+#if FRAME_CONFIG != HELI_FRAME && FRAME_CONFIG != HELI_COMPOUND_FRAME
     // exit immediately if pre-arm rc checks fail
     pre_arm_rc_checks();
     if (!ap.pre_arm_rc_check) {
@@ -77,7 +77,7 @@ void Copter::esc_calibration_startup_check()
 // esc_calibration_passthrough - pass through pilot throttle to escs
 void Copter::esc_calibration_passthrough()
 {
-#if FRAME_CONFIG != HELI_FRAME
+#if FRAME_CONFIG != HELI_FRAME && FRAME_CONFIG != HELI_COMPOUND_FRAME
     // clear esc flag for next time
     g.esc_calibrate.set_and_save(ESCCAL_NONE);
 
@@ -108,7 +108,7 @@ void Copter::esc_calibration_passthrough()
 // esc_calibration_auto - calibrate the ESCs automatically using a timer and no pilot input
 void Copter::esc_calibration_auto()
 {
-#if FRAME_CONFIG != HELI_FRAME
+#if FRAME_CONFIG != HELI_FRAME && FRAME_CONFIG != HELI_COMPOUND_FRAME
     bool printed_msg = false;
 
     // reduce update rate to motors to 50Hz

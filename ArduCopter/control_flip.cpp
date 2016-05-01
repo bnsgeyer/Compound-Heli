@@ -42,7 +42,7 @@ int8_t    flip_pitch_dir;           // pitch direction (-1 = pitch forward, 1 = 
 bool Copter::flip_init(bool ignore_checks)
 {
 
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     // Flip mode not available for helis as it is untested.
     return false;
 #endif

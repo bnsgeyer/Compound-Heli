@@ -9,7 +9,7 @@
 // loiter_init - initialise loiter controller
 bool Copter::loiter_init(bool ignore_checks)
 {
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
     // as this will force the helicopter to descend.
     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
@@ -88,7 +88,7 @@ void Copter::loiter_run()
     case Loiter_Disarmed:
 
         wp_nav.init_loiter_target();
-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
         // call attitude controller
         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
         attitude_control.set_throttle_out(0,false,g.throttle_filt);
@@ -100,7 +100,7 @@ void Copter::loiter_run()
 
     case Loiter_MotorStop:
 
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
         // helicopters are capable of flying even with the motor stopped, therefore we will attempt to keep flying
         // run loiter controller
         wp_nav.update_loiter(ekfGndSpdLimit, ekfNavVelGainScaler);
@@ -147,7 +147,7 @@ void Copter::loiter_run()
     case Loiter_Landed:
 
         wp_nav.init_loiter_target();
-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
         // call attitude controller
         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
         attitude_control.set_throttle_out(get_throttle_pre_takeoff(channel_throttle->control_in),false,g.throttle_filt);

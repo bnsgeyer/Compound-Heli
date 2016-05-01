@@ -24,7 +24,7 @@ bool Copter::set_mode(uint8_t mode)
 
     switch(mode) {
         case ACRO:
-            #if FRAME_CONFIG == HELI_FRAME
+            #if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
                 success = heli_acro_init(ignore_checks);
             #else
                 success = acro_init(ignore_checks);
@@ -32,7 +32,7 @@ bool Copter::set_mode(uint8_t mode)
             break;
 
         case STABILIZE:
-            #if FRAME_CONFIG == HELI_FRAME
+            #if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
                 success = heli_stabilize_init(ignore_checks);
             #else
                 success = stabilize_init(ignore_checks);
@@ -136,7 +136,7 @@ void Copter::update_flight_mode()
 
     switch (control_mode) {
         case ACRO:
-            #if FRAME_CONFIG == HELI_FRAME
+            #if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
                 heli_acro_run();
             #else
                 acro_run();
@@ -144,7 +144,7 @@ void Copter::update_flight_mode()
             break;
 
         case STABILIZE:
-            #if FRAME_CONFIG == HELI_FRAME
+            #if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
                 heli_stabilize_run();
             #else
                 stabilize_run();
@@ -237,7 +237,7 @@ void Copter::exit_mode(uint8_t old_control_mode, uint8_t new_control_mode)
     // cancel any takeoffs in progress
     takeoff_stop();
 
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     // firmly reset the flybar passthrough to false when exiting acro mode.
     if (old_control_mode == ACRO) {
         attitude_control.use_flybar_passthrough(false, false);
@@ -256,7 +256,7 @@ void Copter::exit_mode(uint8_t old_control_mode, uint8_t new_control_mode)
 
     // reset RC Passthrough to motors
     motors.reset_radio_passthrough();
-#endif //HELI_FRAME
+#endif //HELI_FRAME  || HELI_COMPOUND_FRAME
 }
 
 // returns true or false whether mode requires GPS

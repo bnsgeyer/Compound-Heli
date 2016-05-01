@@ -155,6 +155,7 @@ public:
         //
         // 80: Heli
         //
+        k_param_heli_servo_5, // 79
         k_param_heli_servo_1 = 80,
         k_param_heli_servo_2,
         k_param_heli_servo_3,
@@ -440,6 +441,11 @@ public:
     RC_Channel      heli_servo_1, heli_servo_2, heli_servo_3, heli_servo_4;     // servos for swash plate and tail
     RC_Channel      heli_servo_rsc;                                             // servo for rotor speed control output
 #endif
+#if FRAME_CONFIG ==     HELI_COMPOUND_FRAME
+    // Heli
+    RC_Channel      heli_servo_1, heli_servo_2, heli_servo_3;                   // servos for swash plate
+    RC_Channel      heli_servo_4, heli_servo_5, heli_servo_rsc;                 // servo for directional/thrust and rotor speed control output
+#endif
 #if FRAME_CONFIG ==     SINGLE_FRAME
     // Single
     RC_Channel      single_servo_1, single_servo_2, single_servo_3, single_servo_4;     // servos for four flaps
@@ -481,7 +487,7 @@ public:
     AP_Float                acro_expo;
 
     // PI/D controllers
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     AC_HELI_PID             pid_rate_roll;
     AC_HELI_PID             pid_rate_pitch;
     AC_HELI_PID             pid_rate_yaw;
@@ -517,6 +523,14 @@ public:
         heli_servo_4        (CH_4),
         heli_servo_rsc      (CH_8),
 #endif
+#if FRAME_CONFIG ==     HELI_COMPOUND_FRAME
+        heli_servo_1        (CH_1),
+        heli_servo_2        (CH_2),
+        heli_servo_3        (CH_3),
+        heli_servo_4        (CH_4),
+        heli_servo_5        (CH_5),
+        heli_servo_rsc      (CH_8),
+#endif
 #if FRAME_CONFIG ==     SINGLE_FRAME
         single_servo_1        (CH_1),
         single_servo_2        (CH_2),
@@ -550,7 +564,7 @@ public:
 
         // PID controller	    initial P	      initial I         initial D       initial imax        initial filt hz     pid rate
         //---------------------------------------------------------------------------------------------------------------------------------
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
         pid_rate_roll           (RATE_ROLL_P,     RATE_ROLL_I,      RATE_ROLL_D,    RATE_ROLL_IMAX,     RATE_ROLL_FILT_HZ,  MAIN_LOOP_SECONDS, RATE_ROLL_FF),
         pid_rate_pitch          (RATE_PITCH_P,    RATE_PITCH_I,     RATE_PITCH_D,   RATE_PITCH_IMAX,    RATE_PITCH_FILT_HZ, MAIN_LOOP_SECONDS, RATE_PITCH_FF),
         pid_rate_yaw            (RATE_YAW_P,      RATE_YAW_I,       RATE_YAW_D,     RATE_YAW_IMAX,      RATE_YAW_FILT_HZ,   MAIN_LOOP_SECONDS, RATE_YAW_FF),

@@ -1,0 +1,1135 @@
+diff --git a/ArduCopter/APM_Config.h b/ArduCopter/APM_Config.h
+index f3c5536..b485685 100644
+--- a/ArduCopter/APM_Config.h
++++ b/ArduCopter/APM_Config.h
+@@ -14,6 +14,7 @@
+  *  OCTA_FRAME
+  *  OCTA_QUAD_FRAME
+  *  HELI_FRAME
++ *  HELI_COMPOUND_FRAME
+  *  SINGLE_FRAME
+  *  COAX_FRAME
+  */
+diff --git a/ArduCopter/ArduCopter.cpp b/ArduCopter/ArduCopter.cpp
+index 0587b96..76647d9 100644
+--- a/ArduCopter/ArduCopter.cpp
++++ b/ArduCopter/ArduCopter.cpp
+@@ -110,7 +110,7 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] PROGMEM = {
+     { SCHED_TASK(three_hz_loop),       133,     75 },
+     { SCHED_TASK(compass_accumulate),    8,    100 },
+     { SCHED_TASK(barometer_accumulate),  8,     90 },
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     { SCHED_TASK(check_dynamic_flight),  8,     75 },
+ #endif
+     { SCHED_TASK(update_notify),         8,     90 },
+@@ -251,7 +251,7 @@ void Copter::fast_loop()
+     // run low level rate controllers that only require IMU data
+     attitude_control.rate_controller_run();
+     
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     update_heli_control_dynamics();
+ #endif //HELI_FRAME
+ 
+@@ -303,7 +303,7 @@ void Copter::throttle_loop()
+     // check auto_armed status
+     update_auto_armed();
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // update rotor speed
+     heli_update_rotor_speed_targets();
+ 
+@@ -374,7 +374,7 @@ void Copter::ten_hz_logging_loop()
+     if (should_log(MASK_LOG_IMU) || should_log(MASK_LOG_IMU_FAST) || should_log(MASK_LOG_IMU_RAW)) {
+         DataFlash.Log_Write_Vibration(ins);
+     }
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     Log_Write_Heli();
+ #endif
+ }
+@@ -464,7 +464,7 @@ void Copter::one_hz_loop()
+         // make it possible to change ahrs orientation at runtime during initial config
+         ahrs.set_orientation();
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+         // helicopters are always using motor interlock
+         set_using_interlock(true);
+ #else
+diff --git a/ArduCopter/Attitude.cpp b/ArduCopter/Attitude.cpp
+index 1235ea4..29a8966 100644
+--- a/ArduCopter/Attitude.cpp
++++ b/ArduCopter/Attitude.cpp
+@@ -219,7 +219,7 @@ float Copter::get_throttle_pre_takeoff(float input_thr)
+     float in_min = g.throttle_min;
+     float in_max = get_takeoff_trigger_throttle();
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // helicopters swash will move from bottom to 1/2 of mid throttle
+     float out_min = 0;
+ #else
+diff --git a/ArduCopter/Copter.cpp b/ArduCopter/Copter.cpp
+index e01e3d6..26f8f90 100644
+--- a/ArduCopter/Copter.cpp
++++ b/ArduCopter/Copter.cpp
+@@ -35,6 +35,11 @@ Copter::Copter(void) :
+ 
+     // ToDo: Input Manager is only used by Heli for 3.3, but will be used by all frames for 3.4
+     input_manager(MAIN_LOOP_RATE),
++#elif FRAME_CONFIG == HELI_COMPOUND_FRAME  // helicopter constructor requires more arguments
++    motors(g.rc_6, g.rc_7, g.heli_servo_rsc, g.heli_servo_1, g.heli_servo_2, g.heli_servo_3, g.heli_servo_4, g.heli_servo_5, MAIN_LOOP_RATE),
++
++    // ToDo: Input Manager is only used by Heli for 3.3, but will be used by all frames for 3.4
++    input_manager(MAIN_LOOP_RATE),
+ #elif FRAME_CONFIG == TRI_FRAME  // tri constructor requires additional rc_7 argument to allow tail servo reversing
+     motors(MAIN_LOOP_RATE),
+ #elif FRAME_CONFIG == SINGLE_FRAME  // single constructor requires extra servos for flaps
+@@ -84,7 +89,7 @@ Copter::Copter(void) :
+     condition_start(0),
+     G_Dt(0.0025f),
+     inertial_nav(ahrs),
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     attitude_control(ahrs, aparm, motors, g.p_stabilize_roll, g.p_stabilize_pitch, g.p_stabilize_yaw,
+                      g.pid_rate_roll, g.pid_rate_pitch, g.pid_rate_yaw),
+ #else
+diff --git a/ArduCopter/Copter.h b/ArduCopter/Copter.h
+index 7afa0ef..ee833a7 100644
+--- a/ArduCopter/Copter.h
++++ b/ArduCopter/Copter.h
+@@ -299,6 +299,8 @@ private:
+  #define MOTOR_CLASS AP_MotorsOctaQuad
+ #elif FRAME_CONFIG == HELI_FRAME
+  #define MOTOR_CLASS AP_MotorsHeli_Single
++#elif FRAME_CONFIG == HELI_COMPOUND_FRAME
++ #define MOTOR_CLASS AP_MotorsHeli_Compound
+ #elif FRAME_CONFIG == SINGLE_FRAME
+  #define MOTOR_CLASS AP_MotorsSingle
+ #elif FRAME_CONFIG == COAX_FRAME
+@@ -416,7 +418,7 @@ private:
+ 
+     // Attitude, Position and Waypoint navigation objects
+     // To-Do: move inertial nav up or other navigation variables down here
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     AC_AttitudeControl_Heli attitude_control;
+ #else
+     AC_AttitudeControl_Multi attitude_control;
+@@ -496,7 +498,7 @@ private:
+     // Pilot Input Management Library
+     // Only used for Helicopter for AC3.3, to be expanded to include Multirotor
+     // child class for AC3.4
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     AC_InputManager_Heli input_manager;
+ #endif
+ 
+@@ -510,7 +512,7 @@ private:
+     // setup the var_info table
+     AP_Param param_loader;
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // Mode filter to reject RC Input glitches.  Filter size is 5, and it draws the 4th element, so it can reject 3 low glitches,
+     // and 1 high glitch.  This is because any "off" glitches can be highly problematic for a helicopter running an ESC
+     // governor.  Even a single "off" frame can cause the rotor to slow dramatically and take a long time to restart.
+@@ -626,7 +628,7 @@ private:
+     void Log_Write_Parameter_Tuning(uint8_t param, float tuning_val, int16_t control_in, int16_t tune_low, int16_t tune_high);
+     void Log_Write_Home_And_Origin();
+     void Log_Sensor_Health();
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     void Log_Write_Heli(void);
+ #endif
+     void Log_Read(uint16_t log_num, uint16_t start_page, uint16_t end_page);
+diff --git a/ArduCopter/GCS_Mavlink.cpp b/ArduCopter/GCS_Mavlink.cpp
+index f44bcc8..28cf08f 100644
+--- a/ArduCopter/GCS_Mavlink.cpp
++++ b/ArduCopter/GCS_Mavlink.cpp
+@@ -86,7 +86,7 @@ NOINLINE void Copter::send_heartbeat(mavlink_channel_t chan)
+         MAV_TYPE_HEXAROTOR,
+ #elif (FRAME_CONFIG == OCTA_FRAME || FRAME_CONFIG == OCTA_QUAD_FRAME)
+         MAV_TYPE_OCTOROTOR,
+-#elif (FRAME_CONFIG == HELI_FRAME)
++#elif (FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME)
+         MAV_TYPE_HELICOPTER,
+ #elif (FRAME_CONFIG == SINGLE_FRAME)  //because mavlink did not define a singlecopter, we use a rocket
+         MAV_TYPE_ROCKET,
+@@ -331,7 +331,7 @@ void NOINLINE Copter::send_servo_out(mavlink_channel_t chan)
+     // normalized values scaled to -10000 to 10000
+     // This is used for HIL.  Do not change without discussing with HIL maintainers
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     mavlink_msg_rc_channels_scaled_send(
+         chan,
+         millis(),
+diff --git a/ArduCopter/Log.cpp b/ArduCopter/Log.cpp
+index e4391c1..6aae9e8 100644
+--- a/ArduCopter/Log.cpp
++++ b/ArduCopter/Log.cpp
+@@ -425,7 +425,7 @@ struct PACKED log_MotBatt {
+ // Write an rate packet
+ void Copter::Log_Write_MotBatt()
+ {
+-#if FRAME_CONFIG != HELI_FRAME
++#if FRAME_CONFIG != HELI_FRAME && FRAME_CONFIG != HELI_COMPOUND_FRAME
+     struct log_MotBatt pkt_mot = {
+         LOG_PACKET_HEADER_INIT(LOG_MOTBATT_MSG),
+         time_us         : hal.scheduler->micros64(),
+@@ -667,7 +667,7 @@ struct PACKED log_Heli {
+     int16_t   main_rotor_speed;
+ };
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+ // Write an helicopter packet
+ void Copter::Log_Write_Heli()
+ {
+@@ -817,7 +817,7 @@ void Copter::Log_Write_Parameter_Tuning(uint8_t param, float tuning_val, int16_t
+ void Copter::Log_Write_Home_And_Origin() {}
+ void Copter::Log_Sensor_Health() {}
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+ void Copter::Log_Write_Heli() {}
+ #endif
+ 
+diff --git a/ArduCopter/Parameters.cpp b/ArduCopter/Parameters.cpp
+index 85766e7..b2abe43 100644
+--- a/ArduCopter/Parameters.cpp
++++ b/ArduCopter/Parameters.cpp
+@@ -511,7 +511,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
+     // @User: Advanced
+     GSCALAR(fs_ekf_thresh, "FS_EKF_THRESH",    FS_EKF_THRESHOLD_DEFAULT),
+ 
+-#if FRAME_CONFIG ==     HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // @Group: HS1_
+     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+     GGROUP(heli_servo_1,    "HS1_", RC_Channel),
+@@ -524,6 +524,11 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
+     // @Group: HS4_
+     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+     GGROUP(heli_servo_4,    "HS4_", RC_Channel),
++#if FRAME_CONFIG == HELI_COMPOUND_FRAME
++    // @Group: HS1_
++    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
++    GGROUP(heli_servo_5,    "HS5_", RC_Channel),
++#endif
+     // @Group: H_RSC_
+     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+     GGROUP(heli_servo_rsc,    "H_RSC_", RC_Channel),
+@@ -667,7 +672,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
+     // @Range: 0.001 0.02
+     // @Increment: 0.001
+     // @User: Standard
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     GGROUP(pid_rate_roll,     "RATE_RLL_", AC_HELI_PID),
+ #else
+     GGROUP(pid_rate_roll,     "RATE_RLL_", AC_PID),
+@@ -701,7 +706,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
+     // @Range: 0.001 0.02
+     // @Increment: 0.001
+     // @User: Standard
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     GGROUP(pid_rate_pitch,    "RATE_PIT_", AC_HELI_PID),
+ #else
+     GGROUP(pid_rate_pitch,    "RATE_PIT_", AC_PID),
+@@ -735,7 +740,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
+     // @Range: 0.000 0.02
+     // @Increment: 0.001
+     // @User: Standard
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     GGROUP(pid_rate_yaw,      "RATE_YAW_", AC_HELI_PID),
+ #else
+     GGROUP(pid_rate_yaw,      "RATE_YAW_", AC_PID),
+@@ -869,7 +874,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
+     // @Path: ../libraries/AP_LandingGear/AP_LandingGear.cpp
+     GOBJECT(landinggear,    "LGR_", AP_LandingGear),
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // @Group: IM_
+     // @Path: ../libraries/AC_InputManager_Heli.cpp
+     GOBJECT(input_manager, "IM_", AC_InputManager_Heli),
+@@ -891,7 +896,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
+     // @Path: ../libraries/AC_WPNav/AC_Circle.cpp
+     GOBJECT(circle_nav, "CIRCLE_",  AC_Circle),
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     GOBJECT(attitude_control, "ATC_", AC_AttitudeControl_Heli),
+ #else
+     // @Group: ATC_
+@@ -981,6 +986,11 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
+     // @Path: ../libraries/AP_Motors/AP_MotorsHeli_Single.cpp
+     GOBJECT(motors, "H_",           AP_MotorsHeli_Single),
+ 
++#elif FRAME_CONFIG ==   HELI_COMPOUND_FRAME
++    // @Group: H_
++    // @Path: ../libraries/AP_Motors/AP_MotorsHeli_Compound.cpp
++    GOBJECT(motors, "H_",           AP_MotorsHeli_Compound),
++
+ #elif FRAME_CONFIG == SINGLE_FRAME
+     // @Group: SS1_
+     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+diff --git a/ArduCopter/Parameters.h b/ArduCopter/Parameters.h
+index 26c6bdb..0732c48 100644
+--- a/ArduCopter/Parameters.h
++++ b/ArduCopter/Parameters.h
+@@ -155,6 +155,7 @@ public:
+         //
+         // 80: Heli
+         //
++        k_param_heli_servo_5, // 79
+         k_param_heli_servo_1 = 80,
+         k_param_heli_servo_2,
+         k_param_heli_servo_3,
+@@ -440,6 +441,11 @@ public:
+     RC_Channel      heli_servo_1, heli_servo_2, heli_servo_3, heli_servo_4;     // servos for swash plate and tail
+     RC_Channel      heli_servo_rsc;                                             // servo for rotor speed control output
+ #endif
++#if FRAME_CONFIG ==     HELI_COMPOUND_FRAME
++    // Heli
++    RC_Channel      heli_servo_1, heli_servo_2, heli_servo_3;                   // servos for swash plate
++    RC_Channel      heli_servo_4, heli_servo_5, heli_servo_rsc;                 // servo for directional/thrust and rotor speed control output
++#endif
+ #if FRAME_CONFIG ==     SINGLE_FRAME
+     // Single
+     RC_Channel      single_servo_1, single_servo_2, single_servo_3, single_servo_4;     // servos for four flaps
+@@ -481,7 +487,7 @@ public:
+     AP_Float                acro_expo;
+ 
+     // PI/D controllers
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     AC_HELI_PID             pid_rate_roll;
+     AC_HELI_PID             pid_rate_pitch;
+     AC_HELI_PID             pid_rate_yaw;
+@@ -517,6 +523,14 @@ public:
+         heli_servo_4        (CH_4),
+         heli_servo_rsc      (CH_8),
+ #endif
++#if FRAME_CONFIG ==     HELI_COMPOUND_FRAME
++        heli_servo_1        (CH_1),
++        heli_servo_2        (CH_2),
++        heli_servo_3        (CH_3),
++        heli_servo_4        (CH_4),
++        heli_servo_5        (CH_5),
++        heli_servo_rsc      (CH_8),
++#endif
+ #if FRAME_CONFIG ==     SINGLE_FRAME
+         single_servo_1        (CH_1),
+         single_servo_2        (CH_2),
+@@ -550,7 +564,7 @@ public:
+ 
+         // PID controller	    initial P	      initial I         initial D       initial imax        initial filt hz     pid rate
+         //---------------------------------------------------------------------------------------------------------------------------------
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+         pid_rate_roll           (RATE_ROLL_P,     RATE_ROLL_I,      RATE_ROLL_D,    RATE_ROLL_IMAX,     RATE_ROLL_FILT_HZ,  MAIN_LOOP_SECONDS, RATE_ROLL_FF),
+         pid_rate_pitch          (RATE_PITCH_P,    RATE_PITCH_I,     RATE_PITCH_D,   RATE_PITCH_IMAX,    RATE_PITCH_FILT_HZ, MAIN_LOOP_SECONDS, RATE_PITCH_FF),
+         pid_rate_yaw            (RATE_YAW_P,      RATE_YAW_I,       RATE_YAW_D,     RATE_YAW_IMAX,      RATE_YAW_FILT_HZ,   MAIN_LOOP_SECONDS, RATE_YAW_FF),
+diff --git a/ArduCopter/compassmot.cpp b/ArduCopter/compassmot.cpp
+index e06105a..4ca078f 100644
+--- a/ArduCopter/compassmot.cpp
++++ b/ArduCopter/compassmot.cpp
+@@ -9,7 +9,7 @@
+ // setup_compassmot - sets compass's motor interference parameters
+ uint8_t Copter::mavlink_compassmot(mavlink_channel_t chan)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // compassmot not implemented for tradheli
+     return 1;
+ #else
+diff --git a/ArduCopter/config.h b/ArduCopter/config.h
+index ead1186..ced4e6b 100644
+--- a/ArduCopter/config.h
++++ b/ArduCopter/config.h
+@@ -91,6 +91,8 @@
+  # define FRAME_CONFIG_STRING "OCTA_QUAD"
+ #elif FRAME_CONFIG == HELI_FRAME
+  # define FRAME_CONFIG_STRING "HELI"
++#elif FRAME_CONFIG == HELI_COMPOUND_FRAME
++ # define FRAME_CONFIG_STRING "HELI_COMPOUND"
+ #elif FRAME_CONFIG == SINGLE_FRAME
+  # define FRAME_CONFIG_STRING "SINGLE"
+ #elif FRAME_CONFIG == COAX_FRAME
+@@ -101,7 +103,7 @@
+ 
+ /////////////////////////////////////////////////////////////////////////////////
+ // TradHeli defaults
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+   # define RC_FAST_SPEED                        125
+   # define WP_YAW_BEHAVIOR_DEFAULT              WP_YAW_BEHAVIOR_LOOK_AHEAD
+   # define RATE_ROLL_P                          0.02
+diff --git a/ArduCopter/control_althold.cpp b/ArduCopter/control_althold.cpp
+index 55e9bcc..59a669c 100644
+--- a/ArduCopter/control_althold.cpp
++++ b/ArduCopter/control_althold.cpp
+@@ -9,7 +9,7 @@
+ // althold_init - initialise althold controller
+ bool Copter::althold_init(bool ignore_checks)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
+     // as this will force the helicopter to descend.
+     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
+@@ -52,7 +52,7 @@ void Copter::althold_run()
+     float target_climb_rate = get_pilot_desired_climb_rate(channel_throttle->control_in);
+     target_climb_rate = constrain_float(target_climb_rate, -g.pilot_velocity_z_max, g.pilot_velocity_z_max);
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // helicopters are held on the ground until rotor speed runup has finished
+     bool takeoff_triggered = (ap.land_complete && (channel_throttle->control_in > get_takeoff_trigger_throttle()) && motors.rotor_runup_complete());
+ #else
+@@ -77,7 +77,7 @@ void Copter::althold_run()
+ 
+     case AltHold_Disarmed:
+ 
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         attitude_control.set_yaw_target_to_current_heading();
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(target_roll, target_pitch, target_yaw_rate, get_smoothing_gain());
+@@ -90,7 +90,7 @@ void Copter::althold_run()
+ 
+     case AltHold_MotorStop:
+ 
+-#if FRAME_CONFIG == HELI_FRAME    
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME   
+         // helicopters are capable of flying even with the motor stopped, therefore we will attempt to keep flying
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(target_roll, target_pitch, target_yaw_rate, get_smoothing_gain());
+@@ -129,7 +129,7 @@ void Copter::althold_run()
+ 
+     case AltHold_Landed:
+ 
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME // Helicopters always stabilize roll/pitch/yaw
+         attitude_control.set_yaw_target_to_current_heading();
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(target_roll, target_pitch, target_yaw_rate, get_smoothing_gain());
+diff --git a/ArduCopter/control_auto.cpp b/ArduCopter/control_auto.cpp
+index 9f919fd..77420c2 100644
+--- a/ArduCopter/control_auto.cpp
++++ b/ArduCopter/control_auto.cpp
+@@ -22,7 +22,7 @@
+ // auto_init - initialise auto controller
+ bool Copter::auto_init(bool ignore_checks)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
+     // as this will force the helicopter to descend.
+     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
+@@ -123,7 +123,7 @@ void Copter::auto_takeoff_run()
+     if(!ap.auto_armed || !motors.get_interlock()) {
+         // initialise wpnav targets
+         wp_nav.shift_wp_origin_to_current_pos();
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -176,7 +176,7 @@ void Copter::auto_wp_run()
+     if(!ap.auto_armed || !motors.get_interlock()) {
+         // To-Do: reset waypoint origin to current location because copter is probably on the ground so we don't want it lurching left or right on take-off
+         //    (of course it would be better if people just used take-off)
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -240,7 +240,7 @@ void Copter::auto_spline_run()
+     if(!ap.auto_armed || !motors.get_interlock()) {
+         // To-Do: reset waypoint origin to current location because copter is probably on the ground so we don't want it lurching left or right on take-off
+         //    (of course it would be better if people just used take-off)
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -313,7 +313,7 @@ void Copter::auto_land_run()
+ 
+     // if not auto armed or motor interlock not enabled set throttle to zero and exit immediately
+     if(!ap.auto_armed || ap.land_complete) {
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -485,7 +485,7 @@ void Copter::auto_loiter_run()
+ {
+     // if not auto armed or motor interlock not enabled set throttle to zero and exit immediately
+     if(!ap.auto_armed || ap.land_complete || !motors.get_interlock()) {
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+diff --git a/ArduCopter/control_autotune.cpp b/ArduCopter/control_autotune.cpp
+index 5b44e23..f92e96f 100644
+--- a/ArduCopter/control_autotune.cpp
++++ b/ArduCopter/control_autotune.cpp
+@@ -164,7 +164,7 @@ static float    tune_yaw_rp, tune_yaw_rLPF, tune_yaw_sp, tune_yaw_accel;
+ // autotune_init - should be called when autotune mode is selected
+ bool Copter::autotune_init(bool ignore_checks)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // Autotune mode not available for helicopters
+     return false;
+ #endif
+diff --git a/ArduCopter/control_brake.cpp b/ArduCopter/control_brake.cpp
+index 7cca057..39eb93c 100644
+--- a/ArduCopter/control_brake.cpp
++++ b/ArduCopter/control_brake.cpp
+@@ -9,7 +9,7 @@
+ // brake_init - initialise brake controller
+ bool Copter::brake_init(bool ignore_checks)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
+     // as this will force the helicopter to descend.
+     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
+@@ -46,7 +46,7 @@ void Copter::brake_run()
+     // if not auto armed set throttle to zero and exit immediately
+     if(!ap.auto_armed) {
+         wp_nav.init_brake_target(BRAKE_MODE_DECEL_RATE);
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+diff --git a/ArduCopter/control_circle.cpp b/ArduCopter/control_circle.cpp
+index 2e9f4d8..725c558 100644
+--- a/ArduCopter/control_circle.cpp
++++ b/ArduCopter/control_circle.cpp
+@@ -9,7 +9,7 @@
+ // circle_init - initialise circle controller flight mode
+ bool Copter::circle_init(bool ignore_checks)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
+     // as this will force the helicopter to descend.
+     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
+@@ -45,7 +45,7 @@ void Copter::circle_run()
+     // if not auto armed or motor interlock not enabled set throttle to zero and exit immediately
+     if(!ap.auto_armed || ap.land_complete || !motors.get_interlock()) {
+         // To-Do: add some initialisation of position controllers
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+diff --git a/ArduCopter/control_drift.cpp b/ArduCopter/control_drift.cpp
+index ecb14d0..136b926 100644
+--- a/ArduCopter/control_drift.cpp
++++ b/ArduCopter/control_drift.cpp
+@@ -31,7 +31,7 @@
+ // drift_init - initialise drift controller
+ bool Copter::drift_init(bool ignore_checks)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
+     // as this will force the helicopter to descend.
+     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
+diff --git a/ArduCopter/control_flip.cpp b/ArduCopter/control_flip.cpp
+index 6a88936..9bf378b 100644
+--- a/ArduCopter/control_flip.cpp
++++ b/ArduCopter/control_flip.cpp
+@@ -42,7 +42,7 @@ int8_t    flip_pitch_dir;           // pitch direction (-1 = pitch forward, 1 =
+ bool Copter::flip_init(bool ignore_checks)
+ {
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // Flip mode not available for helis as it is untested.
+     return false;
+ #endif
+diff --git a/ArduCopter/control_guided.cpp b/ArduCopter/control_guided.cpp
+index 759aa88..47dd6e5 100644
+--- a/ArduCopter/control_guided.cpp
++++ b/ArduCopter/control_guided.cpp
+@@ -29,7 +29,7 @@ struct Guided_Limit {
+ // guided_init - initialise guided controller
+ bool Copter::guided_init(bool ignore_checks)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
+     // as this will force the helicopter to descend.
+     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
+@@ -202,7 +202,7 @@ void Copter::guided_takeoff_run()
+ {
+     // if not auto armed or motors not enabled set throttle to zero and exit immediately
+     if (!ap.auto_armed || !motors.get_interlock()) {
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -235,7 +235,7 @@ void Copter::guided_pos_control_run()
+ {
+     // if not auto armed or motors not enabled set throttle to zero and exit immediately
+     if (!ap.auto_armed || !motors.get_interlock() || ap.land_complete) {
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -279,7 +279,7 @@ void Copter::guided_vel_control_run()
+     if (!ap.auto_armed || !motors.get_interlock() || ap.land_complete) {
+         // initialise velocity controller
+         pos_control.init_vel_controller_xyz();
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -327,7 +327,7 @@ void Copter::guided_posvel_control_run()
+         // set target position and velocity to current position and velocity
+         pos_control.set_pos_target(inertial_nav.get_position());
+         pos_control.set_desired_velocity(Vector3f(0,0,0));
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+diff --git a/ArduCopter/control_land.cpp b/ArduCopter/control_land.cpp
+index e3583fb..62caa2a 100644
+--- a/ArduCopter/control_land.cpp
++++ b/ArduCopter/control_land.cpp
+@@ -54,7 +54,7 @@ void Copter::land_gps_run()
+ 
+     // if not auto armed or landed or motor interlock not enabled set throttle to zero and exit immediately
+     if(!ap.auto_armed || ap.land_complete || !motors.get_interlock()) {
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -147,7 +147,7 @@ void Copter::land_nogps_run()
+ 
+     // if not auto armed or landed or motor interlock not enabled set throttle to zero and exit immediately
+     if(!ap.auto_armed || ap.land_complete || !motors.get_interlock()) {
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(target_roll, target_pitch, target_yaw_rate, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+diff --git a/ArduCopter/control_loiter.cpp b/ArduCopter/control_loiter.cpp
+index ef0c8c6..575ac5f 100644
+--- a/ArduCopter/control_loiter.cpp
++++ b/ArduCopter/control_loiter.cpp
+@@ -9,7 +9,7 @@
+ // loiter_init - initialise loiter controller
+ bool Copter::loiter_init(bool ignore_checks)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
+     // as this will force the helicopter to descend.
+     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
+@@ -88,7 +88,7 @@ void Copter::loiter_run()
+     case Loiter_Disarmed:
+ 
+         wp_nav.init_loiter_target();
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -100,7 +100,7 @@ void Copter::loiter_run()
+ 
+     case Loiter_MotorStop:
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+         // helicopters are capable of flying even with the motor stopped, therefore we will attempt to keep flying
+         // run loiter controller
+         wp_nav.update_loiter(ekfGndSpdLimit, ekfNavVelGainScaler);
+@@ -147,7 +147,7 @@ void Copter::loiter_run()
+     case Loiter_Landed:
+ 
+         wp_nav.init_loiter_target();
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(get_throttle_pre_takeoff(channel_throttle->control_in),false,g.throttle_filt);
+diff --git a/ArduCopter/control_poshold.cpp b/ArduCopter/control_poshold.cpp
+index 7155d6f..a6df98f 100644
+--- a/ArduCopter/control_poshold.cpp
++++ b/ArduCopter/control_poshold.cpp
+@@ -77,7 +77,7 @@ static struct {
+ // poshold_init - initialise PosHold controller
+ bool Copter::poshold_init(bool ignore_checks)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
+     // as this will force the helicopter to descend.
+     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
+diff --git a/ArduCopter/control_rtl.cpp b/ArduCopter/control_rtl.cpp
+index 4b6aa98..864c7ec 100644
+--- a/ArduCopter/control_rtl.cpp
++++ b/ArduCopter/control_rtl.cpp
+@@ -12,7 +12,7 @@
+ // rtl_init - initialise rtl controller
+ bool Copter::rtl_init(bool ignore_checks)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
+     // as this will force the helicopter to descend.
+     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
+@@ -144,7 +144,7 @@ void Copter::rtl_climb_return_run()
+ {
+     // if not auto armed or motor interlock not enabled set throttle to zero and exit immediately
+     if(!ap.auto_armed || !motors.get_interlock()) {
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -206,7 +206,7 @@ void Copter::rtl_loiterathome_run()
+ {
+     // if not auto armed or motor interlock not enabled set throttle to zero and exit immediately
+     if(!ap.auto_armed || !motors.get_interlock()) {
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -282,7 +282,7 @@ void Copter::rtl_descent_run()
+ 
+     // if not auto armed or motor interlock not enabled set throttle to zero and exit immediately
+     if(!ap.auto_armed || !motors.get_interlock()) {
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+@@ -350,7 +350,7 @@ void Copter::rtl_land_run()
+     float target_yaw_rate = 0;
+     // if not auto armed or landing completed or motor interlock not enabled set throttle to zero and exit immediately
+     if(!ap.auto_armed || ap.land_complete || !motors.get_interlock()) {
+-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
+         // call attitude controller
+         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
+         attitude_control.set_throttle_out(0,false,g.throttle_filt);
+diff --git a/ArduCopter/control_sport.cpp b/ArduCopter/control_sport.cpp
+index 5c81bd7..341fde2 100644
+--- a/ArduCopter/control_sport.cpp
++++ b/ArduCopter/control_sport.cpp
+@@ -9,7 +9,7 @@
+ // sport_init - initialise sport controller
+ bool Copter::sport_init(bool ignore_checks)
+ {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
+     // as this will force the helicopter to descend.
+     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
+diff --git a/ArduCopter/defines.h b/ArduCopter/defines.h
+index 43e4b0a..6772bcb 100644
+--- a/ArduCopter/defines.h
++++ b/ArduCopter/defines.h
+@@ -79,6 +79,7 @@ enum aux_sw_func {
+ #define OCTA_QUAD_FRAME 7
+ #define SINGLE_FRAME 8
+ #define COAX_FRAME 9
++#define HELI_COMPOUND_FRAME 10
+ 
+ // HIL enumerations
+ #define HIL_MODE_DISABLED               0
+diff --git a/ArduCopter/esc_calibration.cpp b/ArduCopter/esc_calibration.cpp
+index 7fb4969..7504aaf 100644
+--- a/ArduCopter/esc_calibration.cpp
++++ b/ArduCopter/esc_calibration.cpp
+@@ -20,7 +20,7 @@ enum ESCCalibrationModes {
+ // check if we should enter esc calibration mode
+ void Copter::esc_calibration_startup_check()
+ {
+-#if FRAME_CONFIG != HELI_FRAME
++#if FRAME_CONFIG != HELI_FRAME && FRAME_CONFIG != HELI_COMPOUND_FRAME
+     // exit immediately if pre-arm rc checks fail
+     pre_arm_rc_checks();
+     if (!ap.pre_arm_rc_check) {
+@@ -77,7 +77,7 @@ void Copter::esc_calibration_startup_check()
+ // esc_calibration_passthrough - pass through pilot throttle to escs
+ void Copter::esc_calibration_passthrough()
+ {
+-#if FRAME_CONFIG != HELI_FRAME
++#if FRAME_CONFIG != HELI_FRAME && FRAME_CONFIG != HELI_COMPOUND_FRAME
+     // clear esc flag for next time
+     g.esc_calibrate.set_and_save(ESCCAL_NONE);
+ 
+@@ -108,7 +108,7 @@ void Copter::esc_calibration_passthrough()
+ // esc_calibration_auto - calibrate the ESCs automatically using a timer and no pilot input
+ void Copter::esc_calibration_auto()
+ {
+-#if FRAME_CONFIG != HELI_FRAME
++#if FRAME_CONFIG != HELI_FRAME && FRAME_CONFIG != HELI_COMPOUND_FRAME
+     bool printed_msg = false;
+ 
+     // reduce update rate to motors to 50Hz
+diff --git a/ArduCopter/flight_mode.cpp b/ArduCopter/flight_mode.cpp
+index 2affefa..ed0f52d 100644
+--- a/ArduCopter/flight_mode.cpp
++++ b/ArduCopter/flight_mode.cpp
+@@ -24,7 +24,7 @@ bool Copter::set_mode(uint8_t mode)
+ 
+     switch(mode) {
+         case ACRO:
+-            #if FRAME_CONFIG == HELI_FRAME
++            #if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+                 success = heli_acro_init(ignore_checks);
+             #else
+                 success = acro_init(ignore_checks);
+@@ -32,7 +32,7 @@ bool Copter::set_mode(uint8_t mode)
+             break;
+ 
+         case STABILIZE:
+-            #if FRAME_CONFIG == HELI_FRAME
++            #if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+                 success = heli_stabilize_init(ignore_checks);
+             #else
+                 success = stabilize_init(ignore_checks);
+@@ -136,7 +136,7 @@ void Copter::update_flight_mode()
+ 
+     switch (control_mode) {
+         case ACRO:
+-            #if FRAME_CONFIG == HELI_FRAME
++            #if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+                 heli_acro_run();
+             #else
+                 acro_run();
+@@ -144,7 +144,7 @@ void Copter::update_flight_mode()
+             break;
+ 
+         case STABILIZE:
+-            #if FRAME_CONFIG == HELI_FRAME
++            #if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+                 heli_stabilize_run();
+             #else
+                 stabilize_run();
+@@ -237,7 +237,7 @@ void Copter::exit_mode(uint8_t old_control_mode, uint8_t new_control_mode)
+     // cancel any takeoffs in progress
+     takeoff_stop();
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // firmly reset the flybar passthrough to false when exiting acro mode.
+     if (old_control_mode == ACRO) {
+         attitude_control.use_flybar_passthrough(false, false);
+@@ -256,7 +256,7 @@ void Copter::exit_mode(uint8_t old_control_mode, uint8_t new_control_mode)
+ 
+     // reset RC Passthrough to motors
+     motors.reset_radio_passthrough();
+-#endif //HELI_FRAME
++#endif //HELI_FRAME  || HELI_COMPOUND_FRAME
+ }
+ 
+ // returns true or false whether mode requires GPS
+diff --git a/ArduCopter/heli.cpp b/ArduCopter/heli.cpp
+index e718a04..f0b7fb2 100644
+--- a/ArduCopter/heli.cpp
++++ b/ArduCopter/heli.cpp
+@@ -4,7 +4,7 @@
+ 
+ // Traditional helicopter variables and functions
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+ 
+ #ifndef HELI_DYNAMIC_FLIGHT_SPEED_MIN
+  #define HELI_DYNAMIC_FLIGHT_SPEED_MIN      500     // we are in "dynamic flight" when the speed is over 1m/s for 2 seconds
+@@ -205,4 +205,4 @@ void Copter::heli_radio_passthrough()
+     motors.set_radio_passthrough(channel_roll->control_in, channel_pitch->control_in, channel_throttle->control_in, channel_yaw->control_in);
+ }
+ 
+-#endif  // FRAME_CONFIG == HELI_FRAME
++#endif  // FRAME_CONFIG == HELI_FRAME  || FRAME_CONFIG == HELI_COMPOUND_FRAME
+diff --git a/ArduCopter/heli_control_acro.cpp b/ArduCopter/heli_control_acro.cpp
+index 7c6ba22..dcafdd2 100644
+--- a/ArduCopter/heli_control_acro.cpp
++++ b/ArduCopter/heli_control_acro.cpp
+@@ -2,7 +2,7 @@
+ 
+ #include "Copter.h"
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+ /*
+  * heli_control_acro.pde - init and run calls for acro flight mode for trad heli
+  */
+diff --git a/ArduCopter/heli_control_stabilize.cpp b/ArduCopter/heli_control_stabilize.cpp
+index 41566fb..ec0ffea 100644
+--- a/ArduCopter/heli_control_stabilize.cpp
++++ b/ArduCopter/heli_control_stabilize.cpp
+@@ -2,7 +2,7 @@
+ 
+ #include "Copter.h"
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+ /*
+  * heli_control_stabilize.pde - init and run calls for stabilize flight mode for trad heli
+  */
+@@ -26,6 +26,7 @@ void Copter::heli_stabilize_run()
+ {
+     float target_roll, target_pitch;
+     float target_yaw_rate;
++    int16_t boost;
+     int16_t pilot_throttle_scaled;
+ 
+     // Tradheli should not reset roll, pitch, yaw targets when motors are not runup, because
+@@ -59,6 +60,13 @@ void Copter::heli_stabilize_run()
+     // get pilot's desired yaw rate
+     target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->control_in);
+ 
++#if FRAME_CONFIG == HELI_COMPOUND_FRAME
++    //get boost
++    boost=6000*(g.rc_7.radio_in-g.rc_7.radio_min)/(g.rc_7.radio_max-g.rc_7.radio_min);
++    //set boost
++    motors.set_boost(boost);
++#endif
++
+     // get pilot's desired throttle
+     pilot_throttle_scaled = input_manager.get_pilot_desired_collective(channel_throttle->control_in);
+ 
+diff --git a/ArduCopter/land_detector.cpp b/ArduCopter/land_detector.cpp
+index 3839512..09da61e 100644
+--- a/ArduCopter/land_detector.cpp
++++ b/ArduCopter/land_detector.cpp
+@@ -41,7 +41,7 @@ void Copter::update_land_detector()
+         // if disarmed, always landed.
+         set_land_complete(true);
+     } else if (ap.land_complete) {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME 
+         // if rotor speed and collective pitch are high then clear landing flag
+         if (motors.get_throttle() > get_non_takeoff_throttle() && motors.rotor_runup_complete()) {
+ #else
+@@ -52,7 +52,7 @@ void Copter::update_land_detector()
+         }
+     } else {
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+         // check that collective pitch is on lower limit (should be constrained by LAND_COL_MIN)
+         bool motor_at_lower_limit = motors.limit.throttle_lower;
+ #else
+@@ -113,7 +113,7 @@ void Copter::set_land_complete_maybe(bool b)
+ //  has no effect when throttle is above hover throttle
+ void Copter::update_throttle_thr_mix()
+ {
+-#if FRAME_CONFIG != HELI_FRAME
++#if FRAME_CONFIG != HELI_FRAME && FRAME_CONFIG != HELI_COMPOUND_FRAME
+     // if disarmed prioritise throttle
+     if(!motors.armed()) {
+         motors.set_throttle_mix_min();
+diff --git a/ArduCopter/motors.cpp b/ArduCopter/motors.cpp
+index 41a0b41..f3934aa 100644
+--- a/ArduCopter/motors.cpp
++++ b/ArduCopter/motors.cpp
+@@ -487,7 +487,7 @@ bool Copter::pre_arm_checks(bool display_failure)
+             return false;
+         }
+ #endif
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+         // check helicopter parameters
+         if (!motors.parameter_check()) {
+             if (display_failure) {
+@@ -503,7 +503,7 @@ bool Copter::pre_arm_checks(bool display_failure)
+     if ((g.arming_check == ARMING_CHECK_ALL) || (g.arming_check & ARMING_CHECK_RC)) {
+         if (g.failsafe_throttle != FS_THR_DISABLED && channel_throttle->radio_in < g.failsafe_throttle_value) {
+             if (display_failure) {
+-    #if FRAME_CONFIG == HELI_FRAME
++    #if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Collective below Failsafe"));
+     #else
+                 gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Throttle below Failsafe"));
+@@ -690,7 +690,7 @@ bool Copter::arm_checks(bool display_failure, bool arming_from_gcs)
+         return false;
+     }
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+ 	// heli specific arming check
+     // check if rotor is spinning on heli because this could disrupt gyro calibration
+     if (!motors.allow_arming()){
+@@ -780,7 +780,7 @@ bool Copter::arm_checks(bool display_failure, bool arming_from_gcs)
+         // check throttle is not too low - must be above failsafe throttle
+         if (g.failsafe_throttle != FS_THR_DISABLED && channel_throttle->radio_in < g.failsafe_throttle_value) {
+             if (display_failure) {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+                 gcs_send_text_P(SEVERITY_HIGH,PSTR("Arm: Collective below Failsafe"));
+ #else
+                 gcs_send_text_P(SEVERITY_HIGH,PSTR("Arm: Throttle below Failsafe"));
+@@ -794,7 +794,7 @@ bool Copter::arm_checks(bool display_failure, bool arming_from_gcs)
+             // above top of deadband is too always high
+             if (channel_throttle->control_in > get_takeoff_trigger_throttle()) {
+                 if (display_failure) {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+                     gcs_send_text_P(SEVERITY_HIGH,PSTR("Arm: Collective too high"));
+ #else
+                     gcs_send_text_P(SEVERITY_HIGH,PSTR("Arm: Throttle too high"));
+@@ -805,7 +805,7 @@ bool Copter::arm_checks(bool display_failure, bool arming_from_gcs)
+             // in manual modes throttle must be at zero
+             if ((mode_has_manual_throttle(control_mode) || control_mode == DRIFT) && channel_throttle->control_in > 0) {
+                 if (display_failure) {
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+                     gcs_send_text_P(SEVERITY_HIGH,PSTR("Arm: Collective too high"));
+ #else
+                     gcs_send_text_P(SEVERITY_HIGH,PSTR("Arm: Throttle too high"));
+diff --git a/ArduCopter/radio.cpp b/ArduCopter/radio.cpp
+index faa5177..4fd118f 100644
+--- a/ArduCopter/radio.cpp
++++ b/ArduCopter/radio.cpp
+@@ -10,7 +10,7 @@ void Copter::default_dead_zones()
+ {
+     channel_roll->set_default_dead_zone(30);
+     channel_pitch->set_default_dead_zone(30);
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     channel_throttle->set_default_dead_zone(10);
+     channel_yaw->set_default_dead_zone(15);
+     g.rc_8.set_default_dead_zone(10);
+@@ -57,7 +57,7 @@ void Copter::init_rc_out()
+     motors.set_update_rate(g.rc_speed);
+     motors.set_frame_orientation(g.frame_orientation);
+     motors.Init();                                              // motor initialisation
+-#if FRAME_CONFIG != HELI_FRAME
++#if FRAME_CONFIG != HELI_FRAME && FRAME_CONFIG != HELI_COMPOUND_FRAME
+     motors.set_throttle_range(g.throttle_min, channel_throttle->radio_min, channel_throttle->radio_max);
+     motors.set_hover_throttle(g.throttle_mid);
+ #endif
+diff --git a/ArduCopter/setup.cpp b/ArduCopter/setup.cpp
+index a003d13..4a6f149 100644
+--- a/ArduCopter/setup.cpp
++++ b/ArduCopter/setup.cpp
+@@ -337,6 +337,8 @@ void Copter::report_frame()
+     cliSerial->printf_P(PSTR("Octa frame\n"));
+  #elif FRAME_CONFIG == HELI_FRAME
+     cliSerial->printf_P(PSTR("Heli frame\n"));
++ #elif FRAME_CONFIG == HELI_COMPOUND_FRAME
++    cliSerial->printf_P(PSTR("HeliCompound frame\n"));
+  #endif
+ 
+     print_blanks(2);
+diff --git a/ArduCopter/system.cpp b/ArduCopter/system.cpp
+index f1ee86b..f54bdcc 100644
+--- a/ArduCopter/system.cpp
++++ b/ArduCopter/system.cpp
+@@ -165,7 +165,7 @@ void Copter::init_ardupilot()
+     log_init();
+ #endif
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     // trad heli specific initialisation
+     heli_init();
+ #endif
+@@ -377,7 +377,7 @@ void Copter::update_auto_armed()
+         if(mode_has_manual_throttle(control_mode) && ap.throttle_zero && !failsafe.radio) {
+             set_auto_armed(false);
+         }
+-#if FRAME_CONFIG == HELI_FRAME 
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+         // if helicopters are on the ground, and the motor is switched off, auto-armed should be false
+         // so that rotor runup is checked again before attempting to take-off
+         if(ap.land_complete && !motors.rotor_runup_complete()) {
+@@ -387,7 +387,7 @@ void Copter::update_auto_armed()
+     }else{
+         // arm checks
+         
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+         // for tradheli if motors are armed and throttle is above zero and the motor is started, auto_armed should be true
+         if(motors.armed() && !ap.throttle_zero && motors.rotor_runup_complete()) {
+             set_auto_armed(true);
+diff --git a/ArduCopter/takeoff.cpp b/ArduCopter/takeoff.cpp
+index f1a664a..3ebe978 100644
+--- a/ArduCopter/takeoff.cpp
++++ b/ArduCopter/takeoff.cpp
+@@ -29,7 +29,7 @@ bool Copter::do_user_takeoff(float takeoff_alt_cm, bool must_navigate)
+ {
+     if (motors.armed() && ap.land_complete && current_mode_has_user_takeoff(must_navigate) && takeoff_alt_cm > current_loc.alt) {
+ 
+-#if FRAME_CONFIG == HELI_FRAME
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+         // Helicopters should return false if MAVlink takeoff command is received while the rotor is not spinning
+         if (!motors.rotor_runup_complete()) {
+             return false;
+diff --git a/ArduCopter/tuning.cpp b/ArduCopter/tuning.cpp
+index 4ec0921..28e28b8 100644
+--- a/ArduCopter/tuning.cpp
++++ b/ArduCopter/tuning.cpp
+@@ -110,7 +110,9 @@ void Copter::tuning() {
+     case TUNING_HELI_EXTERNAL_GYRO:
+         motors.ext_gyro_gain(g.rc_6.control_in);
+         break;
++#endif
+ 
++#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
+     case TUNING_RATE_PITCH_FF:
+         g.pid_rate_pitch.ff(tuning_value);
+         break;
+@@ -186,7 +188,7 @@ void Copter::tuning() {
+         g.pid_rate_roll.kD(tuning_value);
+         break;
+ 
+-#if FRAME_CONFIG != HELI_FRAME
++#if FRAME_CONFIG != HELI_FRAME && FRAME_CONFIG != HELI_COMPOUND_FRAME
+     case TUNING_RATE_MOT_YAW_HEADROOM:
+         motors.set_yaw_headroom(tuning_value*1000);
+         break;
+diff --git a/libraries/AP_Motors/AP_Motors.h b/libraries/AP_Motors/AP_Motors.h
+index a13c351..3c92857 100644
+--- a/libraries/AP_Motors/AP_Motors.h
++++ b/libraries/AP_Motors/AP_Motors.h
+@@ -13,6 +13,7 @@
+ #include "AP_MotorsOcta.h"
+ #include "AP_MotorsOctaQuad.h"
+ #include "AP_MotorsHeli_Single.h"
++#include "AP_MotorsHeli_Compound.h"
+ #include "AP_MotorsSingle.h"
+ #include "AP_MotorsCoax.h"
+ 
+diff --git a/mk/targets.mk b/mk/targets.mk
+index 5b0a64a..16a6f57 100644
+--- a/mk/targets.mk
++++ b/mk/targets.mk
+@@ -76,7 +76,7 @@ empty: all
+ %-nologging: EXTRAFLAGS += "-DLOGGING_ENABLED=DISABLED "
+ 
+ # cope with copter and hil targets
+-FRAMES = quad tri hexa y6 octa octa-quad heli single coax obc nologging
++FRAMES = quad tri hexa y6 octa octa-quad heli heli-compound single coax obc nologging
+ BOARDS = apm1 apm2 apm2beta apm1-1280 px4 px4-v1 px4-v2 sitl flymaple linux vrbrain vrbrain-v40 vrbrain-v45 vrbrainv-50 vrbrain-v51 vrbrain-v52 vrubrain-v51 vrubrain-v52 vrhero-v10 erle pxf navio bbbmini
+ 
+ define frame_template

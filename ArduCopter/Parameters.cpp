@@ -511,7 +511,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @User: Advanced
     GSCALAR(fs_ekf_thresh, "FS_EKF_THRESH",    FS_EKF_THRESHOLD_DEFAULT),
 
-#if FRAME_CONFIG ==     HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     // @Group: HS1_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
     GGROUP(heli_servo_1,    "HS1_", RC_Channel),
@@ -524,6 +524,11 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @Group: HS4_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
     GGROUP(heli_servo_4,    "HS4_", RC_Channel),
+#if FRAME_CONFIG == HELI_COMPOUND_FRAME
+    // @Group: HS1_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+    GGROUP(heli_servo_5,    "HS5_", RC_Channel),
+#endif
     // @Group: H_RSC_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
     GGROUP(heli_servo_rsc,    "H_RSC_", RC_Channel),
@@ -667,7 +672,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @Range: 0.001 0.02
     // @Increment: 0.001
     // @User: Standard
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     GGROUP(pid_rate_roll,     "RATE_RLL_", AC_HELI_PID),
 #else
     GGROUP(pid_rate_roll,     "RATE_RLL_", AC_PID),
@@ -701,7 +706,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @Range: 0.001 0.02
     // @Increment: 0.001
     // @User: Standard
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     GGROUP(pid_rate_pitch,    "RATE_PIT_", AC_HELI_PID),
 #else
     GGROUP(pid_rate_pitch,    "RATE_PIT_", AC_PID),
@@ -735,7 +740,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @Range: 0.000 0.02
     // @Increment: 0.001
     // @User: Standard
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     GGROUP(pid_rate_yaw,      "RATE_YAW_", AC_HELI_PID),
 #else
     GGROUP(pid_rate_yaw,      "RATE_YAW_", AC_PID),
@@ -869,7 +874,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @Path: ../libraries/AP_LandingGear/AP_LandingGear.cpp
     GOBJECT(landinggear,    "LGR_", AP_LandingGear),
 
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     // @Group: IM_
     // @Path: ../libraries/AC_InputManager_Heli.cpp
     GOBJECT(input_manager, "IM_", AC_InputManager_Heli),
@@ -891,7 +896,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @Path: ../libraries/AC_WPNav/AC_Circle.cpp
     GOBJECT(circle_nav, "CIRCLE_",  AC_Circle),
 
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     GOBJECT(attitude_control, "ATC_", AC_AttitudeControl_Heli),
 #else
     // @Group: ATC_
@@ -980,6 +985,11 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @Group: H_
     // @Path: ../libraries/AP_Motors/AP_MotorsHeli_Single.cpp
     GOBJECT(motors, "H_",           AP_MotorsHeli_Single),
+
+#elif FRAME_CONFIG ==   HELI_COMPOUND_FRAME
+    // @Group: H_
+    // @Path: ../libraries/AP_Motors/AP_MotorsHeli_Compound.cpp
+    GOBJECT(motors, "H_",           AP_MotorsHeli_Compound),
 
 #elif FRAME_CONFIG == SINGLE_FRAME
     // @Group: SS1_

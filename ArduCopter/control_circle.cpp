@@ -9,7 +9,7 @@
 // circle_init - initialise circle controller flight mode
 bool Copter::circle_init(bool ignore_checks)
 {
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     // do not allow helis to enter Alt Hold if the Rotor Runup is not complete and current control mode has manual throttle control,
     // as this will force the helicopter to descend.
     if (!ignore_checks && mode_has_manual_throttle(control_mode) && !motors.rotor_runup_complete()){
@@ -45,7 +45,7 @@ void Copter::circle_run()
     // if not auto armed or motor interlock not enabled set throttle to zero and exit immediately
     if(!ap.auto_armed || ap.land_complete || !motors.get_interlock()) {
         // To-Do: add some initialisation of position controllers
-#if FRAME_CONFIG == HELI_FRAME  // Helicopters always stabilize roll/pitch/yaw
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME  // Helicopters always stabilize roll/pitch/yaw
         // call attitude controller
         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(0, 0, 0, get_smoothing_gain());
         attitude_control.set_throttle_out(0,false,g.throttle_filt);

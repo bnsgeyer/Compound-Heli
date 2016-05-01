@@ -2,7 +2,7 @@
 
 #include "Copter.h"
 
-#if FRAME_CONFIG == HELI_FRAME
+#if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
 /*
  * heli_control_acro.pde - init and run calls for acro flight mode for trad heli
  */
