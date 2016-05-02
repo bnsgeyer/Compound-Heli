@@ -110,6 +110,8 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] PROGMEM = {
     { SCHED_TASK(three_hz_loop),       133,     75 },
     { SCHED_TASK(compass_accumulate),    8,    100 },
     { SCHED_TASK(barometer_accumulate),  8,     90 },
+    { SCHED_TASK(read_airspeed),        40,   1200 },  //(01/20/2016-Geyer)
+    { SCHED_TASK(airspeed_ratio_update), 400, 1000 },  //(01/20/2016-Geyer)
 #if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     { SCHED_TASK(check_dynamic_flight),  8,     75 },
 #endif
@@ -506,6 +508,38 @@ void Copter::one_hz_loop()
     ins.set_raw_logging(should_log(MASK_LOG_IMU_RAW));
 }
 
+/*
+  once a second update the airspeed calibration ratio
+ (01/20/2016-geyer)
+ */
+void Copter::airspeed_ratio_update(void)
+{
+    if (!airspeed.enabled() ||
+        gps.status() < AP_GPS::GPS_OK_FIX_3D ||
+        gps.ground_speed() < 4) {
+        // don't calibrate when not moving
+        return;
+    }
+    if (airspeed.get_airspeed() < aparmX.airspeed_min &&
+        gps.ground_speed() < (uint32_t)aparmX.airspeed_min) {
+        // don't calibrate when flying below the minimum airspeed. We
+        // check both airspeed and ground speed to catch cases where
+        // the airspeed ratio is way too low, which could lead to it
+        // never coming up again
+        return;
+    }
+    if (abs(ahrs.roll_sensor) > roll_limit_cd ||
+        ahrs.pitch_sensor > aparmX.pitch_limit_max_cd ||
+        ahrs.pitch_sensor < pitch_limit_min_cd) {
+        // don't calibrate when going beyond normal flight envelope
+        return;
+    }
+    const Vector3f &vg = gps.velocity();
+    airspeed.update_calibration(vg);
+    gcs_send_airspeed_calibration(vg);
+}
+
+
 // called at 50hz
 void Copter::update_GPS(void)
 {
@@ -615,6 +649,12 @@ void Copter::read_AHRS(void)
 #endif
 
     ahrs.update();
+
+    // calculate a scaled roll limit based on current pitch
+    roll_limit_cd = g.roll_limit_cd * cosf(ahrs.pitch);
+    pitch_limit_min_cd = aparmX.pitch_limit_min_cd * fabsf(cosf(ahrs.roll));
+
+
 }
 
 // read baro and sonar altitude at 10hz

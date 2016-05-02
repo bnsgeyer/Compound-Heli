@@ -136,6 +136,11 @@ NOINLINE void Copter::send_extended_status1(mavlink_channel_t chan)
     if (g.compass_enabled) {
         control_sensors_present |= MAV_SYS_STATUS_SENSOR_3D_MAG; // compass present
     }
+
+    if (airspeed.enabled()) { // (01/20/2016-Geyer)
+        control_sensors_present |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+    }
+
     if (gps.status() > AP_GPS::NO_GPS) {
         control_sensors_present |= MAV_SYS_STATUS_SENSOR_GPS;
     }
@@ -152,6 +157,10 @@ NOINLINE void Copter::send_extended_status1(mavlink_channel_t chan)
     control_sensors_enabled = control_sensors_present & (~MAV_SYS_STATUS_SENSOR_Z_ALTITUDE_CONTROL &
                                                          ~MAV_SYS_STATUS_SENSOR_XY_POSITION_CONTROL &
                                                          ~MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS);
+
+    if (airspeed.enabled() && airspeed.use()) { // (01/20/2016-Geyer)
+        control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE;
+    }
 
     switch (control_mode) {
     case ALT_HOLD:
@@ -209,6 +218,10 @@ NOINLINE void Copter::send_extended_status1(mavlink_channel_t chan)
     if (ahrs.initialised() && !ahrs.healthy()) {
         // AHRS subsystem is unhealthy
         control_sensors_health &= ~MAV_SYS_STATUS_AHRS;
+    }
+
+    if (airspeed.healthy()) {
+        control_sensors_health |= MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE; // (01/20/2016-Geyer)
     }
 
     int16_t battery_current = -1;
@@ -381,9 +394,19 @@ void NOINLINE Copter::send_radio_out(mavlink_channel_t chan)
 
 void NOINLINE Copter::send_vfr_hud(mavlink_channel_t chan)
 {
+
+    // (01/20/2016-Geyer)
+    float aspeed;
+    if (airspeed.enabled()) {
+        aspeed = airspeed.get_airspeed();
+    } else if (!ahrs.airspeed_estimate(&aspeed)) {
+        aspeed = 0;
+    }
+
     mavlink_msg_vfr_hud_send(
         chan,
-        gps.ground_speed(),
+        //gps.ground_speed(),  original line replaced by line below
+        aspeed,  //(01/20/2016-Geyer)
         gps.ground_speed(),
         (ahrs.yaw_sensor / 100) % 360,
         (int16_t)(motors.get_throttle())/10,
@@ -1279,6 +1302,9 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             } else if (is_equal(packet.param3,1.0f)) {
                 // fast barometer calibration
                 copter.init_barometer(false);
+                if (copter.airspeed.enabled()) {      // (01/20/2016-Geyer)
+                    copter.zero_airspeed(false);
+                }
                 result = MAV_RESULT_ACCEPTED;
             } else if (is_equal(packet.param4,1.0f)) {
                 result = MAV_RESULT_UNSUPPORTED;
@@ -1629,6 +1655,8 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         loc.alt = packet.alt/10;
         Vector3f vel(packet.vx, packet.vy, packet.vz);
         vel *= 0.01f;
+        // setup airspeed pressure based on 3D speed, no wind (01/20/2016-Geyer)
+        airspeed.setHIL(sq(vel.length()) / 2.0f + 2013);
 
         gps.setHIL(0, AP_GPS::GPS_OK_FIX_3D,
                    packet.time_usec/1000,
@@ -1916,6 +1944,21 @@ void Copter::gcs_send_text_fmt(const prog_char_t *fmt, ...)
         if (gcs[i].initialised) {
             gcs[i].pending_status = gcs[0].pending_status;
             gcs[i].send_message(MSG_STATUSTEXT);
+        }
+    }
+}
+
+/*
+  send airspeed calibration data (01/20/2016-geyer)
+ */
+void Copter::gcs_send_airspeed_calibration(const Vector3f &vg)
+{
+    for (uint8_t i=0; i<num_gcs; i++) {
+        if (gcs[i].initialised) {
+            if (comm_get_txspace((mavlink_channel_t)i) - MAVLINK_NUM_NON_PAYLOAD_BYTES >=
+                MAVLINK_MSG_ID_AIRSPEED_AUTOCAL_LEN) {
+                airspeed.log_mavlink_send((mavlink_channel_t)i, vg);
+            }
         }
     }
 }

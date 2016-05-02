@@ -131,6 +131,8 @@ private:
     // key aircraft parameters passed to multiple libraries
     AP_Vehicle::MultiCopter aparm;
 
+    // key aircraft parameters passed to multiple libraries // (01/20/2016-Geyer)
+    AP_Vehicle::FixedWing aparmX;
 
     // cliSerial isn't strictly necessary - it is an alias for hal.console. It may
     // be deprecated in favor of hal.console in later releases.
@@ -159,6 +161,10 @@ private:
 
     // Dataflash
     DataFlash_Class DataFlash;
+
+    // scaled roll limit based on pitch (01/20/2016-Geyer)
+    int32_t roll_limit_cd;
+    int32_t pitch_limit_min_cd;
 
     // the rate we run the main loop at
     const AP_InertialSensor::Sample_rate ins_sample_rate;
@@ -206,6 +212,10 @@ private:
     static const uint8_t num_gcs = MAVLINK_COMM_NUM_BUFFERS;
 
     GCS_MAVLINK gcs[MAVLINK_COMM_NUM_BUFFERS];
+
+    // Airspeed Sensors (01/19/2016-Geyer)
+    AP_Airspeed airspeed {aparmX};
+
 
     // User variables
 #ifdef USERHOOK_VARIABLES
@@ -605,6 +615,7 @@ private:
     void gcs_data_stream_send(void);
     void gcs_check_input(void);
     void gcs_send_text_P(gcs_severity severity, const prog_char_t *str);
+    void gcs_send_airspeed_calibration(const Vector3f &vg);
     void do_erase_logs(void);
     void Log_Write_AutoTune(uint8_t axis, uint8_t tune_step, float meas_target, float meas_min, float meas_max, float new_gain_rp, float new_gain_rd, float new_gain_sp, float new_ddt);
     void Log_Write_AutoTuneDetails(float angle_cd, float rate_cds);
@@ -632,6 +643,7 @@ private:
     void Log_Write_Heli(void);
 #endif
     void Log_Read(uint16_t log_num, uint16_t start_page, uint16_t end_page);
+    void Log_Write_Airspeed(void);
     void start_logging() ;
     void load_parameters(void);
     void userhook_init();
@@ -869,6 +881,9 @@ private:
     void set_throttle_zero_flag(int16_t throttle_control);
     void init_barometer(bool full_calibration);
     void read_barometer(void);
+    void read_airspeed(void);
+    void zero_airspeed(bool in_startup);
+    void airspeed_ratio_update(void);
     void init_sonar(void);
     int16_t read_sonar(void);
     void init_compass();

@@ -202,6 +202,16 @@ public:
         k_param_gcs3,
         k_param_gcs_pid_mask,    // 126
 
+        //(01/20/2016-Geyer)
+        k_param_airspeed_min = 127,
+        k_param_airspeed_max,
+        k_param_airspeed,
+        k_param_pitch_limit_max_cd,
+        k_param_pitch_limit_min_cd,
+        k_param_roll_limit_cd,   //132
+        //(01/20/2016-Geyer)
+
+
         //
         // 135 : reserved for Solo until features merged with master
         //
@@ -430,6 +440,8 @@ public:
     AP_Int8         ch12_option;
     AP_Int8         arming_check;
     AP_Int8         disarm_delay;
+    //(01/20/2016-Geyer)
+    AP_Int16        roll_limit_cd;
 
     AP_Int8         land_repositioning;
     AP_Int8         fs_ekf_action;
@@ -442,7 +454,7 @@ public:
     RC_Channel      heli_servo_rsc;                                             // servo for rotor speed control output
 #endif
 #if FRAME_CONFIG ==     HELI_COMPOUND_FRAME
-    // Heli
+    // Compound Heli
     RC_Channel      heli_servo_1, heli_servo_2, heli_servo_3;                   // servos for swash plate
     RC_Channel      heli_servo_4, heli_servo_5, heli_servo_rsc;                 // servo for directional/thrust and rotor speed control output
 #endif

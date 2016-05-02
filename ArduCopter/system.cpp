@@ -245,6 +245,14 @@ void Copter::init_ardupilot()
     init_sonar();
 #endif
 
+    // Airspeed (01/19/2016-Geyer)
+    // ------------------
+    // initialise airspeed sensor
+     airspeed.init();
+
+     // give AHRS the airspeed sensor
+     ahrs.set_airspeed(&airspeed);
+
     // initialise AP_RPM library
     rpm_sensor.init();
 
@@ -297,6 +305,15 @@ void Copter::startup_ground(bool force_gyro_cal)
  #if CLI_ENABLED == ENABLED
     report_ins();
  #endif
+
+    if (airspeed.enabled()) { // from here (01/19/2016-Geyer)
+         // initialize airspeed sensor
+         // --------------------------
+         zero_airspeed(true);
+     } else {
+         gcs_send_text_P(SEVERITY_LOW,PSTR("NO airspeed"));
+     }                        // to here (01/19/2016-Geyer)
+
 
     // reset ahrs gyro bias
     if (force_gyro_cal) {

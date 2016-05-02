@@ -326,6 +326,35 @@ void Copter::Log_Write_Control_Tuning()
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
+/*
+    struct PACKED log_AIRSPEED { // (01/20/2016-Geyer)
+        LOG_PACKET_HEADER;
+        uint32_t timestamp;
+        float   airspeed;
+        float   diffpressure;
+        int16_t temperature;
+    };
+*/
+// Write a AIRSPEED packet
+void Copter::Log_Write_Airspeed(void) // (01/20/2016-Geyer)
+{
+/*    float temperature;
+    if (!airspeed.get_temperature(temperature)) {
+        temperature = 0;
+    }
+    struct log_AIRSPEED pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_AIRSPEED_MSG),
+        timestamp     : hal.scheduler->millis(),
+        airspeed      : airspeed.get_raw_airspeed(),
+        diffpressure  : airspeed.get_differential_pressure(),
+        temperature   : (int16_t)(temperature * 100.0f)
+    };
+    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+*/
+    DataFlash.Log_Write_Airspeed(airspeed);
+}
+
+
 struct PACKED log_Performance {
     LOG_PACKET_HEADER;
     uint64_t time_us;
@@ -721,6 +750,8 @@ const struct LogStructure Copter::log_structure[] PROGMEM = {
       "ERR",   "QBB",         "TimeUS,Subsys,ECode" },
     { LOG_HELI_MSG, sizeof(log_Heli),
       "HELI",  "Qhh",         "TimeUS,DRRPM,ERRPM" },
+    { LOG_AIRSPEED_MSG, sizeof(log_AIRSPEED),  // (01/20/2016-Geyer)
+      "ARSP",  "Iffc",     "TimeMS,Airspeed,DiffPress,Temp" },
 };
 
 #if CLI_ENABLED == ENABLED
@@ -813,6 +844,7 @@ void Copter::Log_Write_Data(uint8_t id, uint16_t value) {}
 void Copter::Log_Write_Data(uint8_t id, float value) {}
 void Copter::Log_Write_Error(uint8_t sub_system, uint8_t error_code) {}
 void Copter::Log_Write_Baro(void) {}
+void Copter::Log_Write_Airspeed(void) {} // (01/20/2016-Geyer)
 void Copter::Log_Write_Parameter_Tuning(uint8_t param, float tuning_val, int16_t control_in, int16_t tune_low, int16_t tune_high) {}
 void Copter::Log_Write_Home_And_Origin() {}
 void Copter::Log_Sensor_Health() {}

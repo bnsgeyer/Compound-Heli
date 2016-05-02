@@ -24,6 +24,7 @@
 
 #define GSCALAR(v, name, def) { copter.g.v.vtype, name, Parameters::k_param_ ## v, &copter.g.v, {def_value : def} }
 #define ASCALAR(v, name, def) { copter.aparm.v.vtype, name, Parameters::k_param_ ## v, (const void *)&copter.aparm.v, {def_value : def} }
+#define TSCALAR(v, name, def) { copter.aparmX.v.vtype, name, Parameters::k_param_ ## v, (const void *)&copter.aparmX.v, {def_value : def} }
 #define GGROUP(v, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## v, &copter.g.v, {group_info : class::var_info} }
 #define GOBJECT(v, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## v, (const void *)&copter.v, {group_info : class::var_info} }
 #define GOBJECTN(v, pname, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## pname, (const void *)&copter.v, {group_info : class::var_info} }
@@ -533,6 +534,58 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
     GGROUP(heli_servo_rsc,    "H_RSC_", RC_Channel),
 #endif
+
+    // (01/20/2016-geyer)
+        // @Param: ARSPD_FBW_MIN
+        // @DisplayName: Fly By Wire Minimum Airspeed
+        // @Description: Airspeed corresponding to minimum throttle in auto throttle modes (FBWB, CRUISE, AUTO, GUIDED, LOITER, CIRCLE and RTL). This is a calibrated (apparent) airspeed.
+        // @Units: m/s
+        // @Range: 5 50
+        // @Increment: 1
+        // @User: Standard
+        TSCALAR(airspeed_min, "ARSPD_FBW_MIN",  9),
+
+        // @Param: ARSPD_FBW_MAX
+        // @DisplayName: Fly By Wire Maximum Airspeed
+        // @Description: Airspeed corresponding to maximum throttle in auto throttle modes (FBWB, CRUISE, AUTO, GUIDED, LOITER, CIRCLE and RTL). This is a calibrated (apparent) airspeed.
+        // @Units: m/s
+        // @Range: 5 50
+        // @Increment: 1
+        // @User: Standard
+        TSCALAR(airspeed_max, "ARSPD_FBW_MAX",  22),
+
+        // @Param: LIM_PITCH_MAX
+        // @DisplayName: Maximum Pitch Angle
+        // @Description: The maximum commanded pitch up angle
+        // @Units: centi-Degrees
+        // @Range: 0 9000
+        // @Increment: 1
+        // @User: Standard
+        TSCALAR(pitch_limit_max_cd,     "LIM_PITCH_MAX",  3000),
+
+        // @Param: LIM_PITCH_MIN
+        // @DisplayName: Minimum Pitch Angle
+        // @Description: The minimum commanded pitch down angle
+        // @Units: centi-Degrees
+        // @Range: -9000 0
+        // @Increment: 1
+        // @User: Standard
+        TSCALAR(pitch_limit_min_cd,     "LIM_PITCH_MIN",  -2500),
+
+        // @Group: ARSPD_
+        // @Path: ../libraries/AP_Airspeed/AP_Airspeed.cpp
+        GOBJECT(airspeed,                "ARSPD_",   AP_Airspeed),
+
+        // @Param: LIM_ROLL_CD
+        // @DisplayName: Maximum Bank Angle
+        // @Description: The maximum commanded bank angle in either direction
+        // @Units: centi-Degrees
+        // @Range: 0 9000
+        // @Increment: 1
+        // @User: Standard
+        GSCALAR(roll_limit_cd, "LIM_ROLL_CD", 4500),
+    //end (01/20/2016-geyer)
+
 
     // RC channel
     //-----------
