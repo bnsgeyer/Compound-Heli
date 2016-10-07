@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "APM:Copter V3.3.3"
+#define THISFIRMWARE "APM:Copter V3.3.3 wTC"
 #define FIRMWARE_VERSION 3,3,3,FIRMWARE_VERSION_TYPE_OFFICIAL
 
 /*
@@ -215,6 +215,9 @@ private:
 
     // Airspeed Sensors (01/19/2016-Geyer)
     AP_Airspeed airspeed {aparmX};
+    LowPassFilterVector3f ins_accel_bf_filter; // accelerations for Turn Coordination
+    LowPassFilterFloat airspeed_filter; // filtered airspeed for turn coordination
+    bool turn_coordination_enabled;
 
 
     // User variables

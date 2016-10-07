@@ -323,6 +323,10 @@ void Copter::startup_ground(bool force_gyro_cal)
     // set landed flag
     set_land_complete(true);
     set_land_complete_maybe(true);
+
+    // set turn coordination flag
+    turn_coordination_enabled = false;
+
 }
 
 // position_ok - returns true if the horizontal absolute position is ok and home position is set

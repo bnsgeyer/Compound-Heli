@@ -338,6 +338,7 @@ void Copter::Log_Write_Airspeed(void)
         LOG_PACKET_HEADER_INIT(LOG_ARSP_MSG),
         time_us       : hal.scheduler->micros64(),
         airspeed      : airspeed.get_raw_airspeed(),
+        airspeed_filt : airspeed_filter.get(),
         diffpressure  : airspeed.get_differential_pressure(),
         temperature   : (int16_t)(temperature * 100.0f),
         rawpressure   : airspeed.get_raw_pressure(),
@@ -743,8 +744,6 @@ const struct LogStructure Copter::log_structure[] PROGMEM = {
       "ERR",   "QBB",         "TimeUS,Subsys,ECode" },
     { LOG_HELI_MSG, sizeof(log_Heli),
       "HELI",  "Qhh",         "TimeUS,DRRPM,ERRPM" },
-//    { LOG_AIRSPEED_MSG, sizeof(log_AIRSPEED),  // (01/20/2016-Geyer)
-//      "ARSP",  "Iffc",     "TimeMS,Airspeed,DiffPress,Temp" },
 };
 
 #if CLI_ENABLED == ENABLED

@@ -80,6 +80,8 @@ Copter::Copter(void) :
     baro_alt(0),
     baro_climbrate(0.0f),
     land_accel_ef_filter(LAND_DETECTOR_ACCEL_LPF_CUTOFF),
+    ins_accel_bf_filter(5.0f),  // turn coordination filter for accels (Geyer)
+    airspeed_filter(1.0f),      // turn coordination filter for airspeed (Geyer)
     auto_yaw_mode(AUTO_YAW_LOOK_AT_NEXT_WP),
     yaw_look_at_WP_bearing(0.0f),
     yaw_look_at_heading(0),

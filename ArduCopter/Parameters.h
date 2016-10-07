@@ -182,6 +182,11 @@ public:
         k_param_pos_control,
         k_param_circle_nav,     // 104
 
+        k_param_turn_coordination_gain = 105,   
+        k_param_turn_coord_aspd_on,
+        k_param_turn_coord_aspd_off,  // 107
+
+
         // 110: Telemetry control
         //
         k_param_gcs0 = 110,
@@ -442,6 +447,9 @@ public:
     AP_Int8         disarm_delay;
     //(01/20/2016-Geyer)
     AP_Int16        roll_limit_cd;
+    AP_Int16        turn_coordination_gain;
+    AP_Int16        turn_coord_aspd_on;
+    AP_Int16        turn_coord_aspd_off;
 
     AP_Int8         land_repositioning;
     AP_Int8         fs_ekf_action;

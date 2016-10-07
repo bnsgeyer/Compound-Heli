@@ -573,6 +573,7 @@ struct PACKED log_AIRSPEED {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     float   airspeed;
+    float   airspeed_filt;
     float   diffpressure;
     int16_t temperature;
     float   rawpressure;
@@ -659,7 +660,7 @@ Format characters in the format string for binary log messages
     { LOG_CAMERA_MSG, sizeof(log_Camera), \
       "CAM", "QIHLLeeccC","TimeUS,GPSTime,GPSWeek,Lat,Lng,Alt,RelAlt,Roll,Pitch,Yaw" }, \
     { LOG_ARSP_MSG, sizeof(log_AIRSPEED), \
-      "ARSP",  "Qffcff",   "TimeUS,Airspeed,DiffPress,Temp,RawPress,Offset" }, \
+      "ARSP",  "Qffcff",   "TimeUS,Airspeed,Airspeed_filt,DiffPress,Temp,RawPress,Offset" }, \
     { LOG_CURRENT_MSG, sizeof(log_Current), \
       "CURR", "QhhhHfh","TimeUS,Throttle,Volt,Curr,Vcc,CurrTot,Volt2" },\
 	{ LOG_ATTITUDE_MSG, sizeof(log_Attitude),\

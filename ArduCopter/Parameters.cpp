@@ -584,6 +584,34 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
         // @Increment: 1
         // @User: Standard
         GSCALAR(roll_limit_cd, "LIM_ROLL_CD", 4500),
+
+        // @Param: TURN_COORD_GAIN
+        // @DisplayName: Turn Coordination Gain
+        // @Description: The Gain used to add yaw rate based on lateral acceleration
+        // @Units: centi-degrees per second per meter per second per second
+        // @Range: 0 9000
+        // @Increment: 1
+        // @User: Standard
+        GSCALAR(turn_coordination_gain, "TURN_COORD_GAIN", 100),
+  
+        // @Param: TURN_COORD_ON
+        // @DisplayName: Turn Coordination On Airspeed
+        // @Description: The airspeed above which the turn coordination feature is turned on
+        // @Units: meters per second
+        // @Range: 0 90
+        // @Increment: 1
+        // @User: Standard
+        GSCALAR(turn_coord_aspd_on, "TURN_COORD_ON", 7),
+
+        // @Param: TURN_COORD_OFF
+        // @DisplayName: Turn Coordination Off Airspeed
+        // @Description: The airspeed below which the turn coordination feature is turned off
+        // @Units: meters per second
+        // @Range: 0 90
+        // @Increment: 1
+        // @User: Standard
+        GSCALAR(turn_coord_aspd_off, "TURN_COORD_OFF", 5),
+
     //end (01/20/2016-geyer)
 
 

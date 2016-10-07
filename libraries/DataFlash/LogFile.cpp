@@ -1456,6 +1456,7 @@ void DataFlash_Class::Log_Write_Airspeed(AP_Airspeed &airspeed)
         LOG_PACKET_HEADER_INIT(LOG_ARSP_MSG),
         time_us       : hal.scheduler->micros64(),
         airspeed      : airspeed.get_raw_airspeed(),
+        airspeed_filt : airspeed.get_airspeed(),
         diffpressure  : airspeed.get_differential_pressure(),
         temperature   : (int16_t)(temperature * 100.0f),
         rawpressure   : airspeed.get_raw_pressure(),
