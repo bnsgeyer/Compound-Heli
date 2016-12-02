@@ -44,6 +44,14 @@ AC_PID::AC_PID(float initial_p, float initial_i, float initial_d, float initial_
     _dt(dt),
     _integrator(0.0f),
     _input(0.0f),
+    _input1(0.0f),
+    _input2(0.0f),
+    _signal(0.0f),
+    _signal1(0.0f),
+    _signal2(0.0f),
+    _ntchsig(0.0f),
+    _ntchsig1(0.0f),
+    _ntchsig2(0.0f),
     _derivative(0.0f)
 {
     // load parameter values from eeprom
@@ -91,15 +99,74 @@ void AC_PID::set_input_filter_all(float input)
     if (_flags._reset_filter) {
         _flags._reset_filter = false;
         _input = input;
+        _input1 = input;
+        _input2 = input;
+        _signal = input;
+        _signal1 = input;
+        _signal2 = input;
+        _ntchsig = input;
+        _ntchsig1 = input;
+        _ntchsig2 = input;
         _derivative = 0.0f;
     }
 
+// Original first order filter
     // update filter and calculate derivative
-    float input_filt_change = get_filt_alpha() * (input - _input);
-    _input = _input + input_filt_change;
+//    float input_filt_change = get_filt_alpha() * (input - _input);
+//    _input = _input + input_filt_change;
+
+    _ntchsig=input;
+// 2nd order notch filter
+    float notch_hz = 6.2f;
+    if (notch_hz > 0.0f && _filt_hz < 10.0f) {
+      float notch_Q = 0.8f;
+      float notch_c = 1/tanf(M_PI_F*_dt*notch_hz);
+      float n0 = notch_Q*(notch_c*notch_c+1.0f);
+      float n1 =-2.0f*notch_Q*(notch_c*notch_c-1.0f);
+      float n2 = n0;
+      float d0 = notch_c*notch_c*notch_Q+notch_c+notch_Q;
+      float d1 = -2.0f*notch_Q*(notch_c*notch_c-1.0f);
+      float d2 = notch_c*notch_c*notch_Q-notch_c+notch_Q;
+      _signal = (n0*_ntchsig+n1*_ntchsig1+n2*_ntchsig2-d1*_signal1-d2*_signal2)/d0;
+    } else {
+      _signal = _ntchsig;
+      _signal1 = _ntchsig1;
+      _signal2 = _ntchsig2;
+    }
+
+
+// 2nd order butterworth filter
+//    _signal = input;
+    float ita = 1/tanf(M_PI_F*_dt*_filt_hz);
+    float b0 = 1.0f/(1.0f+safe_sqrt(2.0f)*ita+ita*ita);
+    float b1 = 2.0f*b0;
+    float b2 = b0;
+    float a1 = 2.0f*(ita*ita-1.0f)*b0;
+    float a2 = -1.0f*(1.0f-safe_sqrt(2.0f)*ita+ita*ita)*b0;
+    _input = b0*_signal+b1*_signal1+b2*_signal2+a1*_input1+a2*_input2;
+
+// 1st order butterworth filter
+//    _signal = input;
+//    float ita = 1/tanf(M_PI_F*_dt*_filt_hz);
+//    float b0 = 1.0f/(ita+1.0f);
+//    float b1 = b0;
+//    float a1 = (1.0f-ita)/(ita+1.0f);
+//    _input = b0*_signal+b1*_signal1+a1*_input1;
+
+
+    float input_filt_change = _input - _input1;
+
     if (_dt > 0.0f) {
         _derivative = input_filt_change / _dt;
     }
+// Update n-1, and n-2 values of filter and signal for next iteration
+    _ntchsig2 = _ntchsig1;
+    _ntchsig1 = _ntchsig;
+    _signal2 = _signal1;
+    _signal1 = _signal;
+    _input2 = _input1;
+    _input1 = _input;
+
 }
 
 // set_input_filter_d - set input to PID controller
