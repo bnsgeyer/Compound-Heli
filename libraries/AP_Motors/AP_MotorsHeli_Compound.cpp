@@ -474,9 +474,9 @@ void AP_MotorsHeli_Compound::move_yaw(int16_t yaw_in)
 //    int16_t boost_available = 4500 - abs(yaw_out);
 //    int16_t boost_out=4500*_boost_in;
     //int16_t boost_out = _boost_in * boost_available / 1000;
-    _yaw_servo_1.servo_out = _boost_in + yaw_out - 3000;
+    _yaw_servo_1.servo_out = _boost_in + yaw_out;
     //_yaw_servo_1.servo_out = yaw_out;
-    _yaw_servo_2.servo_out = _boost_in - yaw_out - 3000;
+    _yaw_servo_2.servo_out = _boost_in - yaw_out;
     //_yaw_servo_2.servo_out = -yaw_out;
     _yaw_servo_1.calc_pwm();
     _yaw_servo_2.calc_pwm();
