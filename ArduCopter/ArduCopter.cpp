@@ -364,9 +364,6 @@ void Copter::ten_hz_logging_loop()
     if (should_log(MASK_LOG_MOTBATT)) {
         Log_Write_MotBatt();
     }
-    if (should_log(MASK_LOG_RCIN)) {
-        DataFlash.Log_Write_RCIN();
-    }
     if (should_log(MASK_LOG_RCOUT)) {
         DataFlash.Log_Write_RCOUT();
     }
@@ -405,6 +402,9 @@ void Copter::fifty_hz_logging_loop()
     // log IMU data if we're not already logging at the higher rate
     if (should_log(MASK_LOG_IMU) && !(should_log(MASK_LOG_IMU_FAST) || should_log(MASK_LOG_IMU_RAW))) {
         DataFlash.Log_Write_IMU(ins);
+    }
+    if (should_log(MASK_LOG_RCIN)) {
+        DataFlash.Log_Write_RCIN();
     }
 #endif
 }
