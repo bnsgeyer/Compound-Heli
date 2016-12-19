@@ -36,6 +36,12 @@ const AP_Param::GroupInfo AC_PID::var_info[] PROGMEM = {
     // @Unit: Hz
     AP_GROUPINFO("FILT_HZ", 6, AC_PID, _filt_hz, AC_PID_FILT_HZ_DEFAULT),
 
+    // @Param: NOTCH
+    // @DisplayName: PID Input filter frequency in Hz
+    // @Description: Input filter frequency in Hz
+    // @Unit: Hz
+    AP_GROUPINFO("NOTCH", 8, AC_PID, _notch_hz, AC_PID_NOTCH_HZ_DEFAULT),
+    
     AP_GROUPEND
 };
 
@@ -117,10 +123,10 @@ void AC_PID::set_input_filter_all(float input)
 
     _ntchsig=input;
 // 2nd order notch filter
-    float notch_hz = 6.2f;
-    if (notch_hz > 0.0f && _filt_hz < 10.0f) {
+//    float notch_hz = 6.2f;
+    if (_notch_hz > 0.0f ) {
       float notch_Q = 0.8f;
-      float notch_c = 1/tanf(M_PI_F*_dt*notch_hz);
+      float notch_c = 1/tanf(M_PI_F*_dt*_notch_hz);
       float n0 = notch_Q*(notch_c*notch_c+1.0f);
       float n1 =-2.0f*notch_Q*(notch_c*notch_c-1.0f);
       float n2 = n0;

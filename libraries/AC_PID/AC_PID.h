@@ -14,6 +14,7 @@
 
 #define AC_PID_FILT_HZ_DEFAULT  20.0f   // default input filter frequency
 #define AC_PID_FILT_HZ_MIN      0.01f   // minimum input filter frequency
+#define AC_PID_NOTCH_HZ_DEFAULT  0.0f   // default notch input filter frequency
 
 /// @class	AC_PID
 /// @brief	Copter PID control class
@@ -92,6 +93,7 @@ protected:
     AP_Float        _kd;
     AP_Float        _imax;
     AP_Float        _filt_hz;                   // PID Input filter frequency in Hz
+    AP_Float        _notch_hz;                   // PID Input notch filter frequency in Hz
 
     // flags
     struct ac_pid_flags {

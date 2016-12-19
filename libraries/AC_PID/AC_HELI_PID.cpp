@@ -43,6 +43,12 @@ const AP_Param::GroupInfo AC_HELI_PID::var_info[] PROGMEM = {
     // @Range: 0 4500
     // @User: Advanced
     AP_GROUPINFO("I_L_MIN", 7, AC_HELI_PID, _leak_min, AC_PID_LEAK_MIN),
+    
+    // @Param: NOTCH
+    // @DisplayName: PID Input filter frequency in Hz
+    // @Description: Input filter frequency in Hz
+    // @Unit: Hz
+    AP_GROUPINFO("NOTCH", 8, AC_HELI_PID, _notch_hz, AC_PID_NOTCH_HZ_DEFAULT),
 
     AP_GROUPEND
 };

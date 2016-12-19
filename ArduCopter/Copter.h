@@ -1,8 +1,17 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "APM:Copter V3.3.3 wTC"
+#define THISFIRMWARE "APM:Copter V3.3.3 bnsgeyer V3.2"
 #define FIRMWARE_VERSION 3,3,3,FIRMWARE_VERSION_TYPE_OFFICIAL
 
+/*
+Geyer V1.0 - initial AC3.3.3 with airspeed and CH7 passthrough enabled
+Geyer V2.0 - Turn Coordination added
+Geyer V2.1 - modififed filter to 1 hz
+Geyer V3.0 - 2nd Order Butterworth Low Pass and Notch Filter added to PID
+             Notch hardcoded to 0.0hz
+Geyer V3.1 - Notch hardcoded to 6.2hz
+Geyer V3.2 - incorporated parameter for notch center frequency
+*/
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
