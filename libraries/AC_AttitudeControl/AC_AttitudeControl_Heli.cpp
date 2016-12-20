@@ -180,8 +180,8 @@ void AC_AttitudeControl_Heli::rate_bf_to_motor_roll_pitch(float rate_roll_target
     pitch_ff = pitch_feedforward_filter.apply(((AC_HELI_PID&)_pid_rate_pitch).get_vff(rate_pitch_target_cds), _dt);
 
     // add feed forward and final output
-    roll_out = roll_pd + roll_i + roll_ff;
-    pitch_out = pitch_pd + pitch_i + pitch_ff;
+    roll_out = roll_pd + roll_i * get_takeoff_pid_i_scalar() + roll_ff;
+    pitch_out = pitch_pd + pitch_i * get_takeoff_pid_i_scalar() + pitch_ff;
 
     // constrain output and update limit flags
     if (fabsf(roll_out) > AC_ATTITUDE_RATE_RP_CONTROLLER_OUT_MAX) {

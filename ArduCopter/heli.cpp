@@ -86,6 +86,7 @@ void Copter::check_dynamic_flight(void)
 void Copter::update_heli_control_dynamics(void)
 {
     static int16_t hover_roll_trim_scalar_slew = 0;
+    static int16_t takeoff_pid_i_scalar_slew = 0;
 
     // Use Leaky_I if we are not moving fast
     attitude_control.use_leaky_i(!heli_flags.dynamic_flight);
@@ -93,14 +94,19 @@ void Copter::update_heli_control_dynamics(void)
     if (ap.land_complete || (motors.get_desired_rotor_speed() == 0)){
         // if we are landed or there is no rotor power demanded, decrement slew scalar
         hover_roll_trim_scalar_slew--;        
+        takeoff_pid_i_scalar_slew--;        
     } else {
         // if we are not landed and motor power is demanded, increment slew scalar
         hover_roll_trim_scalar_slew++;
+        takeoff_pid_i_scalar_slew++;
     }
     hover_roll_trim_scalar_slew = constrain_int16(hover_roll_trim_scalar_slew, 0, MAIN_LOOP_RATE);
+    takeoff_pid_i_scalar_slew = constrain_int16(takeoff_pid_i_scalar_slew, 0, 2*MAIN_LOOP_RATE);
 
     // set hover roll trim scalar, will ramp from 0 to 1 over 1 second after we think helicopter has taken off
     attitude_control.set_hover_roll_trim_scalar((float)(hover_roll_trim_scalar_slew/MAIN_LOOP_RATE));
+
+    attitude_control.set_takeoff_pid_i_scalar((float)(takeoff_pid_i_scalar_slew/(2*MAIN_LOOP_RATE)));
 }
 
 // heli_update_landing_swash - sets swash plate flag so higher minimum is used when landed or landing
