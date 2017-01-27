@@ -64,6 +64,13 @@ const AP_Param::GroupInfo AC_AttitudeControl::var_info[] PROGMEM = {
     // @User: Advanced
     AP_GROUPINFO("ANGLE_BOOST", 12, AC_AttitudeControl, _angle_boost_enabled, 1),
 
+    // @Param: ANG_LEAK_RAT
+    // @DisplayName: Angle Leak Rate
+    // @Description: Rate at which target attitude will leak back to aircraft current attitude
+    // @Range: 0 1.0
+    // @User: Advanced
+    AP_GROUPINFO("ANG_LEAK_RAT", 13, AC_AttitudeControl, _angle_leak_rate, 0.0f),
+
     AP_GROUPEND
 };
 
@@ -141,6 +148,9 @@ void AC_AttitudeControl::angle_ef_roll_pitch_rate_ef_yaw_smooth(float roll_angle
     // constrain earth-frame angle targets
     _angle_ef_target.x = constrain_float(_angle_ef_target.x, -_aparm.angle_max, _aparm.angle_max);
 
+    // Leak target roll attitude to current roll attitude
+    _angle_ef_target.x = (1.0f-constrain_float(_angle_leak_rate,0.0f,1.0f)) * wrap_180_cd_float(_angle_ef_target.x - _ahrs.roll_sensor) + _ahrs.roll_sensor; 
+
     // if accel limiting and feed forward enabled
     if ((_accel_pitch_max > 0.0f) && _rate_bf_ff_enabled) {
         rate_change_limit = _accel_pitch_max * _dt;
@@ -163,6 +173,9 @@ void AC_AttitudeControl::angle_ef_roll_pitch_rate_ef_yaw_smooth(float roll_angle
     }
     // constrain earth-frame angle targets
     _angle_ef_target.y = constrain_float(_angle_ef_target.y, -_aparm.angle_max, _aparm.angle_max);
+
+    // Leak target pitch attitude to current pitch attitude
+    _angle_ef_target.y = (1.0f-constrain_float(_angle_leak_rate,0.0f,1.0f)) * wrap_180_cd_float(_angle_ef_target.y - _ahrs.pitch_sensor) + _ahrs.pitch_sensor; 
 
     if (_accel_yaw_max > 0.0f) {
         // set earth-frame feed forward rate for yaw
@@ -419,6 +432,10 @@ void AC_AttitudeControl::rate_bf_roll_pitch_yaw(float roll_rate_bf, float pitch_
             _angle_ef_target.z = wrap_360_cd_float(_angle_ef_target.z + 18000.0f);
         }
     }
+
+    // Leak target attitude to current attitude
+    _angle_ef_target.x = (1.0f-constrain_float(_angle_leak_rate,0.0f,1.0f)) * wrap_180_cd_float(_angle_ef_target.x - _ahrs.roll_sensor) + _ahrs.roll_sensor; 
+    _angle_ef_target.y = (1.0f-constrain_float(_angle_leak_rate,0.0f,1.0f)) * wrap_180_cd_float(_angle_ef_target.y - _ahrs.pitch_sensor) + _ahrs.pitch_sensor; 
 
     // convert body-frame angle errors to body-frame rate targets
     update_rate_bf_targets();

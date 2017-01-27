@@ -287,6 +287,7 @@ protected:
     AP_Float            _accel_yaw_max;           // maximum rotation acceleration for earth-frame yaw axis
     AP_Int8             _rate_bf_ff_enabled;    // Enable/Disable body frame rate feed forward
     AP_Int8             _angle_boost_enabled;   // Enable/Disable angle boost
+    AP_Float            _angle_leak_rate;       //attitude angle leak rate
 
     // internal variables
     // To-Do: make rate targets a typedef instead of Vector3f?
