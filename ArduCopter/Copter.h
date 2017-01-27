@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "APM:Copter V3.3.3 bnsgeyer V3.4"
+#define THISFIRMWARE "APM:Copter V3.3.3 bnsgeyer V3.5"
 #define FIRMWARE_VERSION 3,3,3,FIRMWARE_VERSION_TYPE_OFFICIAL
 
 /*
@@ -14,6 +14,9 @@ Geyer V3.2 - incorporated parameter for notch center frequency
 Geyer V3.3 - reverted LPF back to original 1st order and added ramp in/out
              of PID i term during takeoff/landing
 Geyer V3.4 - modified ramp in/out code of PID i term to work properly
+Geyer V3.5 - removed ramp in/out of PID i term feature. 
+             added parameter to adjust leak rate for leaky i term
+             added attitude leak feature that leaks attitude to current attitude
 */
 /*
    This program is free software: you can redistribute it and/or modify
