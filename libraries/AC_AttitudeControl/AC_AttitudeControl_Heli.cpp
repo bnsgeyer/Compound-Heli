@@ -23,6 +23,13 @@ const AP_Param::GroupInfo AC_AttitudeControl_Heli::var_info[] PROGMEM = {
     // @User: Advanced
     AP_GROUPINFO("HOVR_ROL_TRM",    1, AC_AttitudeControl_Heli, _hover_roll_trim, AC_ATTITUDE_HELI_HOVER_ROLL_TRIM_DEFAULT),
 
+    // @Param: I_LEAK_RATE
+    // @DisplayName: I LEAK RATE
+    // @Description: Rate at which I term will leak for PID
+    // @Range: 0 1
+    // @User: Advanced
+    AP_GROUPINFO("I_LEAK_RATE",    3, AC_AttitudeControl_Heli, _rate_integrator_leak_rate, AC_ATTITUDE_HELI_RATE_INTEGRATOR_LEAK_RATE),
+
     AP_GROUPEND
 };
 
@@ -151,7 +158,7 @@ void AC_AttitudeControl_Heli::rate_bf_to_motor_roll_pitch(float rate_roll_target
             }
         }else{
             if (_flags_heli.leaky_i){
-                roll_i = ((AC_HELI_PID&)_pid_rate_roll).get_leaky_i(AC_ATTITUDE_HELI_RATE_INTEGRATOR_LEAK_RATE);
+                roll_i = ((AC_HELI_PID&)_pid_rate_roll).get_leaky_i(_rate_integrator_leak_rate);
             }else{
                 roll_i = _pid_rate_roll.get_i();
             }
@@ -169,7 +176,7 @@ void AC_AttitudeControl_Heli::rate_bf_to_motor_roll_pitch(float rate_roll_target
             }
         }else{
             if (_flags_heli.leaky_i) {
-                pitch_i = ((AC_HELI_PID&)_pid_rate_pitch).get_leaky_i(AC_ATTITUDE_HELI_RATE_INTEGRATOR_LEAK_RATE);
+                pitch_i = ((AC_HELI_PID&)_pid_rate_pitch).get_leaky_i(_rate_integrator_leak_rate);
             }else{
                 pitch_i = _pid_rate_pitch.get_i();
             }
@@ -256,7 +263,7 @@ float AC_AttitudeControl_Heli::rate_bf_to_motor_yaw(float rate_target_cds)
         if (((AP_MotorsHeli&)_motors).rotor_runup_complete()) {
             i = _pid_rate_yaw.get_i();
         } else {
-            i = ((AC_HELI_PID&)_pid_rate_yaw).get_leaky_i(AC_ATTITUDE_HELI_RATE_INTEGRATOR_LEAK_RATE);    // If motor is not running use leaky I-term to avoid excessive build-up
+            i = ((AC_HELI_PID&)_pid_rate_yaw).get_leaky_i(_rate_integrator_leak_rate);    // If motor is not running use leaky I-term to avoid excessive build-up
         }
     }
     
