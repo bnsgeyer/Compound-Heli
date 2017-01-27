@@ -136,29 +136,6 @@ void AC_PID::set_input_filter_all(float input)
       _signal2 = _ntchsig2;
     }
 
-/*
-// 2nd order butterworth filter
-//    _signal = input;
-    float ita = 1/tanf(M_PI_F*_dt*_filt_hz);
-    float b0 = 1.0f/(1.0f+safe_sqrt(2.0f)*ita+ita*ita);
-    float b1 = 2.0f*b0;
-    float b2 = b0;
-    float a1 = 2.0f*(ita*ita-1.0f)*b0;
-    float a2 = -1.0f*(1.0f-safe_sqrt(2.0f)*ita+ita*ita)*b0;
-    _input = b0*_signal+b1*_signal1+b2*_signal2+a1*_input1+a2*_input2;
-
-// 1st order butterworth filter
-//    _signal = input;
-//    float ita = 1/tanf(M_PI_F*_dt*_filt_hz);
-//    float b0 = 1.0f/(ita+1.0f);
-//    float b1 = b0;
-//    float a1 = (1.0f-ita)/(ita+1.0f);
-//    _input = b0*_signal+b1*_signal1+a1*_input1;
-
-    float input_filt_change = _input - _input1;
-
-*/
-
 // Original first order filter
     // update filter and calculate derivative
     float input_filt_change = get_filt_alpha() * (_signal - _input1);
