@@ -1,23 +1,8 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "APM:Copter V3.3.3 bnsgeyer V3.5"
+#define THISFIRMWARE "APM:Copter V3.3.3 bnsgeyer V3.6"
 #define FIRMWARE_VERSION 3,3,3,FIRMWARE_VERSION_TYPE_OFFICIAL
 
-/*
-Geyer V1.0 - initial AC3.3.3 with airspeed and CH7 passthrough enabled
-Geyer V2.0 - Turn Coordination added
-Geyer V2.1 - modififed filter to 1 hz
-Geyer V3.0 - 2nd Order Butterworth Low Pass and Notch Filter added to PID
-             Notch hardcoded to 0.0hz
-Geyer V3.1 - Notch hardcoded to 6.2hz
-Geyer V3.2 - incorporated parameter for notch center frequency
-Geyer V3.3 - reverted LPF back to original 1st order and added ramp in/out
-             of PID i term during takeoff/landing
-Geyer V3.4 - modified ramp in/out code of PID i term to work properly
-Geyer V3.5 - removed ramp in/out of PID i term feature. 
-             added parameter to adjust leak rate for leaky i term
-             added attitude leak feature that leaks attitude to current attitude
-*/
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

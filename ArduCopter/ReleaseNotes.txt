@@ -1,5 +1,30 @@
 APM:Copter Release Notes:
 ------------------------------------------------------------------
+Copter 3.3.3 Geyer V3.6 28-Apr-2017
+Changes from Copter 3.3.3 Geyer V3.5
+1) Trad Heli skips crash check
+2) Restricted Trad Heli from being able to use Drift, Poshold and Sport modes
+3) Reset yaw to current heading in the disarmed and landed states for Loiter mode
+4) Out of bounds checking for incoming signals on channel 8
+5) Ensure RC8 has been calibrated
+6) Protect mode change from out of bounds values
+7) Prevent system from processing RSC controls during radio failsafe condition
+8) Added descent rate as condition for landing detector
+-----------------------------------------------------------------
+Geyer V3.5 - removed ramp in/out of PID i term feature. 
+             added parameter to adjust leak rate for leaky i term
+             added attitude leak feature that leaks attitude to current attitude
+Geyer V3.4 - modified ramp in/out code of PID i term to work properly
+Geyer V3.3 - reverted LPF back to original 1st order and added ramp in/out
+             of PID i term during takeoff/landing
+Geyer V3.2 - incorporated parameter for notch center frequency
+Geyer V3.1 - Notch hardcoded to 6.2hz
+Geyer V3.0 - 2nd Order Butterworth Low Pass and Notch Filter added to PID
+             Notch hardcoded to 0.0hz
+Geyer V2.1 - modififed filter to 1 hz
+Geyer V2.0 - Turn Coordination added
+Geyer V1.0 - initial AC3.3.3 with airspeed and CH7 passthrough enabled
+------------------------------------------------------------------
 Copter 3.3.3 24-Feb-2016 / 3.3.3-rc2 27-Jan-2016
 Changes from 3.3.3-rc1
 1) bug fix to Guided mode's velocity controller to run at 400hz
