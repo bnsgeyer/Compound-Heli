@@ -42,24 +42,30 @@ void Copter::get_pilot_desired_lean_angles(float roll_in, float pitch_in, float 
 float Copter::get_pilot_desired_yaw_rate(int16_t stick_angle)
 {
     const Vector3f& accel = ins.get_accel();
-    // Add in yaw rate for turn coordination (Geyer)
-    // filter Airspeed and Y acceleration
+    // filter Y acceleration
 
     ins_accel_bf_filter.apply(accel, MAIN_LOOP_SECONDS);
-    airspeed_filter.apply(airspeed.get_airspeed(), 0.01f);
 
-    // determine status of turn coordination
-    if (airspeed_filter.get() > g.turn_coord_aspd_on && !turn_coordination_enabled){
-        turn_coordination_enabled = true;
-    }else if (airspeed_filter.get() < g.turn_coord_aspd_off && turn_coordination_enabled){
-        turn_coordination_enabled = false;
-    }
+    // Add in yaw rate for turn coordination if airspeed healthy and enabled
+    if (airspeed.healthy() && airspeed.enabled()) {
+        // filter Airspeed
+        airspeed_filter.apply(airspeed.get_airspeed(), 0.01f);
 
-    // convert pilot input to the desired yaw rate
-    if (turn_coordination_enabled && stick_angle == 0 && (ahrs.roll_sensor > 300.0f || ahrs.roll_sensor < -300.0f)){
-        return stick_angle * g.acro_yaw_p - g.turn_coordination_gain * ins_accel_bf_filter.get().y;
-    }else if (turn_coordination_enabled && stick_angle == 0 && abs(ahrs.roll_sensor) <= 300.0f && ins_accel_bf_filter.get().y > 0.5f){
-        return stick_angle * g.acro_yaw_p - g.turn_coordination_gain * ins_accel_bf_filter.get().y;
+        // determine status of turn coordination
+        if (airspeed_filter.get() > g.turn_coord_aspd_on && !turn_coordination_enabled){
+            turn_coordination_enabled = true;
+        }else if (airspeed_filter.get() < g.turn_coord_aspd_off && turn_coordination_enabled){
+            turn_coordination_enabled = false;
+        }
+
+        // convert pilot input to the desired yaw rate
+        if (turn_coordination_enabled && stick_angle == 0 && (ahrs.roll_sensor > 300.0f || ahrs.roll_sensor < -300.0f)){
+            return stick_angle * g.acro_yaw_p - g.turn_coordination_gain * ins_accel_bf_filter.get().y;
+        }else if (turn_coordination_enabled && stick_angle == 0 && abs(ahrs.roll_sensor) <= 300.0f && ins_accel_bf_filter.get().y > 0.5f){
+            return stick_angle * g.acro_yaw_p - g.turn_coordination_gain * ins_accel_bf_filter.get().y;
+        }else{
+            return stick_angle * g.acro_yaw_p;
+        }
     }else{
         return stick_angle * g.acro_yaw_p;
     }
