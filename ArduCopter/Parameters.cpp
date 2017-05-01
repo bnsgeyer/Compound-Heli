@@ -592,7 +592,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
         // @Range: 0 9000
         // @Increment: 1
         // @User: Standard
-        GSCALAR(turn_coordination_gain, "TURN_COORD_GAIN", 100),
+        GSCALAR(turn_coordination_gain, "TURN_COORD_GAIN", 0),
   
         // @Param: TURN_COORD_ON
         // @DisplayName: Turn Coordination On Airspeed
