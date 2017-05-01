@@ -1,5 +1,10 @@
 APM:Copter Release Notes:
 ------------------------------------------------------------------
+Copter 3.3.3 Geyer V3.7 30-Apr-2017
+Changes from Copter 3.3.3 Geyer V3.6
+1) Required airspeed to be enabled and healthy for turn coordination to be used
+2) set the default gain for turn coordination to be zero
+------------------------------------------------------------------
 Copter 3.3.3 Geyer V3.6 28-Apr-2017
 Changes from Copter 3.3.3 Geyer V3.5
 1) Trad Heli skips crash check
