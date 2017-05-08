@@ -1,5 +1,9 @@
 APM:Copter Release Notes:
 ------------------------------------------------------------------
+Copter 3.3.3 Geyer V3.7.1 7-May-2017
+Changes from Copter 3.3.3 Geyer V3.7
+1) Allowed Trad Heli to use PosHold flight mode
+------------------------------------------------------------------
 Copter 3.3.3 Geyer V3.7 30-Apr-2017
 Changes from Copter 3.3.3 Geyer V3.6
 1) Required airspeed to be enabled and healthy for turn coordination to be used
