@@ -135,7 +135,7 @@ public:
     void servo_test();
 
     // set_boost - engage the booster
-    void set_boost(int16_t boost_in);
+    void set_boost(float boost_in);
     
     // var_info
     static const struct AP_Param::GroupInfo var_info[];
@@ -190,9 +190,11 @@ protected:
     AP_Float        _collective_yaw_effect;     // Feed-forward compensation to automatically add rudder input when collective pitch is increased. Can be positive or negative depending on mechanics.
     AP_Int8         _flybar_mode;               // Flybar present or not.  Affects attitude controller used during ACRO flight mode
     AP_Int16        _direct_drive_tailspeed;    // Direct Drive VarPitch Tail ESC speed (0 ~ 1000)
-
+    AP_Int16        _yaw_offset;                // constant offset instead of mechanically adjusting for yaw in hover
+    AP_Int16        _boost_flat_pitch;          // flat pitch point for propellers
+    
 private:
-    int16_t _boost_in;
+    float _boost_in;
 
 };
 

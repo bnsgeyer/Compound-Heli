@@ -106,6 +106,24 @@ const AP_Param::GroupInfo AP_MotorsHeli_Compound::var_info[] PROGMEM = {
     // @User: Standard
     AP_GROUPINFO("TAIL_SPEED", 10, AP_MotorsHeli_Compound, _direct_drive_tailspeed, AP_MOTORS_HELI_COMPOUND_DDVPT_SPEED_DEFAULT),
 
+    // @Param: YAW_OFFSET
+    // @DisplayName: Yaw Offset
+    // @Description: Allows for a constant input in yaw for hover yaw input
+    // @Range: 0 3000
+    // @Units: Centi-degrees
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("YAW_OFFSET", 11, AP_MotorsHeli_Compound, _yaw_offset, 500),
+
+    // @Param: FLAT_PITCH
+    // @DisplayName: BOOST FLAT PITCH
+    // @Description: Allow user to set point for flat pitch
+    // @Range: 0 4500
+    // @Units: Centi-degrees
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("FLAT_PITCH", 12, AP_MotorsHeli_Compound, _boost_flat_pitch, 4000),
+
     AP_GROUPEND
 };
 
@@ -456,7 +474,7 @@ void AP_MotorsHeli_Compound::move_actuators(int16_t roll_out, int16_t pitch_out,
 
 
 // set_boost
-void AP_MotorsHeli_Compound::set_boost(int16_t boost_in)
+void AP_MotorsHeli_Compound::set_boost(float boost_in)
 {
    _boost_in = boost_in;    
 }
@@ -464,7 +482,7 @@ void AP_MotorsHeli_Compound::set_boost(int16_t boost_in)
 // output_yaw
 void AP_MotorsHeli_Compound::move_yaw(int16_t yaw_in)
 {
-
+  int16_t boost_out;
   // constrain yaw and update limits
   int16_t yaw_out = constrain_int16(yaw_in, -4500, 4500);
   if (yaw_out != yaw_in) {
@@ -474,9 +492,10 @@ void AP_MotorsHeli_Compound::move_yaw(int16_t yaw_in)
 //    int16_t boost_available = 4500 - abs(yaw_out);
 //    int16_t boost_out=4500*_boost_in;
     //int16_t boost_out = _boost_in * boost_available / 1000;
-    _yaw_servo_1.servo_out = _boost_in + yaw_out;
+	boost_out = (9000.0 - (float)_boost_flat_pitch) * _boost_in;
+    _yaw_servo_1.servo_out = boost_out - 4500 + _boost_flat_pitch + _yaw_offset + yaw_out;
     //_yaw_servo_1.servo_out = yaw_out;
-    _yaw_servo_2.servo_out = _boost_in - yaw_out;
+    _yaw_servo_2.servo_out = boost_out - 4500 + _boost_flat_pitch - _yaw_offset - yaw_out;
     //_yaw_servo_2.servo_out = -yaw_out;
     _yaw_servo_1.calc_pwm();
     _yaw_servo_2.calc_pwm();
@@ -484,7 +503,7 @@ void AP_MotorsHeli_Compound::move_yaw(int16_t yaw_in)
     hal.rcout->write(pgm_read_byte(&_motor_to_channel_map[AP_MOTORS_MOT_5]), _yaw_servo_2.radio_out);
   } else if (_tail_type == AP_MOTORS_HELI_COMPOUND_TAILTYPE_DIRECTDRIVE_FIXEDPITCH) {
     int16_t boost_available = 4500 - max(yaw_out, 0);
-    int16_t boost_out = _boost_in * boost_available / 1000;
+    boost_out = _boost_in * boost_available / 1000;
     _servo_aux_1.servo_out = boost_out + yaw_out;
     _servo_aux_2.servo_out = boost_out;
     _servo_aux_1.calc_pwm();
