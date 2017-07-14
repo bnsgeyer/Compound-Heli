@@ -41,11 +41,18 @@ void Copter::get_pilot_desired_lean_angles(float roll_in, float pitch_in, float 
 // returns desired yaw rate in centi-degrees per second
 float Copter::get_pilot_desired_yaw_rate(int16_t stick_angle)
 {
-    const Vector3f& accel = ins.get_accel();
+	const Vector3f& accel = ins.get_accel();
     // filter Y acceleration
 
     ins_accel_bf_filter.apply(accel, MAIN_LOOP_SECONDS);
 
+#if FRAME_CONFIG == HELI_COMPOUND_FRAME
+    //get boost
+    float boost=(float)(g.rc_7.radio_in-g.rc_7.radio_min)/(float)(g.rc_7.radio_max-g.rc_7.radio_min);
+    //set boost
+    motors.set_boost(boost);
+#endif
+    
     // Add in yaw rate for turn coordination if airspeed healthy and enabled
     if (airspeed.healthy() && airspeed.enabled()) {
         // filter Airspeed

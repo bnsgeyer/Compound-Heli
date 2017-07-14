@@ -51,6 +51,13 @@ void Copter::get_pilot_desired_angle_rates(int16_t roll_in, int16_t pitch_in, in
     float rate_limit;
     Vector3f rate_ef_level, rate_bf_level, rate_bf_request;
 
+#if FRAME_CONFIG == HELI_COMPOUND_FRAME
+    //get boost
+    float boost=(float)(g.rc_7.radio_in-g.rc_7.radio_min)/(float)(g.rc_7.radio_max-g.rc_7.radio_min);
+    //set boost
+    motors.set_boost(boost);
+#endif
+    
     // apply circular limit to pitch and roll inputs
     float total_in = pythagorous2((float)pitch_in, (float)roll_in);
 

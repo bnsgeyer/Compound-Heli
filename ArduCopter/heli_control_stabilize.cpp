@@ -26,7 +26,6 @@ void Copter::heli_stabilize_run()
 {
     float target_roll, target_pitch;
     float target_yaw_rate;
-    int16_t boost;
     int16_t pilot_throttle_scaled;
 
     // Tradheli should not reset roll, pitch, yaw targets when motors are not runup, because
@@ -59,13 +58,6 @@ void Copter::heli_stabilize_run()
 
     // get pilot's desired yaw rate
     target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->control_in);
-
-#if FRAME_CONFIG == HELI_COMPOUND_FRAME
-    //get boost
-    boost=6000*(g.rc_7.radio_in-g.rc_7.radio_min)/(g.rc_7.radio_max-g.rc_7.radio_min);
-    //set boost
-    motors.set_boost(boost);
-#endif
 
     // get pilot's desired throttle
     pilot_throttle_scaled = input_manager.get_pilot_desired_collective(channel_throttle->control_in);
