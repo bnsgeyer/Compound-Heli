@@ -513,6 +513,7 @@ private:
     // child class for AC3.4
 #if FRAME_CONFIG == HELI_FRAME || FRAME_CONFIG == HELI_COMPOUND_FRAME
     AC_InputManager_Heli input_manager;
+    AltHoldModeState althold_state_m1 = AltHold_Flying;    
 #endif
 
     // use this to prevent recursion during sensor init

@@ -71,7 +71,15 @@ void Copter::althold_run()
     } else {
         althold_state = AltHold_Flying;
     }
-
+    if (althold_state != althold_state_m1) {
+        if (althold_state == AltHold_MotorStop) {Log_Write_Event(DATA_STATE_MOTORSTOP);}
+        if (althold_state == AltHold_Landed) {Log_Write_Event(DATA_STATE_LANDED);}
+        if (althold_state == AltHold_Takeoff) {Log_Write_Event(DATA_STATE_TAKEOFF);}
+        if (althold_state == AltHold_Flying) {Log_Write_Event(DATA_STATE_FLYING);}
+        althold_state_m1 = althold_state;
+    }
+    
+    
     // Alt Hold State Machine
     switch (althold_state) {
 
@@ -114,16 +122,18 @@ void Copter::althold_run()
             // clear i terms
             set_throttle_takeoff();
         }
-
+        Log_Write_Event(DATA_STATE_TAKEOFF1);
         // get take-off adjusted pilot and takeoff climb rates
         takeoff_get_climb_rates(target_climb_rate, takeoff_climb_rate);
-
+        Log_Write_Event(DATA_STATE_TAKEOFF2);
         // call attitude controller
         attitude_control.angle_ef_roll_pitch_rate_ef_yaw_smooth(target_roll, target_pitch, target_yaw_rate, get_smoothing_gain());
-
+        Log_Write_Event(DATA_STATE_TAKEOFF3);
         // call position controller
         pos_control.set_alt_target_from_climb_rate_ff(target_climb_rate, G_Dt, false);
+        Log_Write_Event(DATA_STATE_TAKEOFF4);
         pos_control.add_takeoff_climb_rate(takeoff_climb_rate, G_Dt);
+        Log_Write_Event(DATA_STATE_TAKEOFF5);
         pos_control.update_z_controller();
         break;
 
