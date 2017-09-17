@@ -16,6 +16,8 @@ elif [ -n "$DISPLAY" -a -x /usr/bin/gnome-terminal ]; then
 elif [ -n "$STY" ]; then
   # We are running inside of screen, try to start it there
   /usr/bin/screen -X screen -t $name $*
+elif [ -f /usr/bin/cygstart ]; then
+  cygstart -w "/usr/bin/mintty.exe" $*
 else
   filename="/tmp/$name.log"
   echo "Window access not found, logging to $filename"

@@ -413,6 +413,8 @@ elif [ $USE_GDB == 1 ]; then
     $autotest/run_in_terminal_window.sh "ardupilot (gdb)" gdb -x $tfile --args $cmd || exit 1
 else
     $autotest/run_in_terminal_window.sh "ardupilot" $cmd || exit 1
+#    cygstart -w $cmd
+#echo "ignoring command"
 fi
 fi
 
@@ -445,6 +447,7 @@ if [ $USE_MAVLINK_GIMBAL == 1 ]; then
 fi
 
 if [ -f /usr/bin/cygstart ]; then
+echo "starting MAVproxy"
     cygstart -w "/cygdrive/c/Program Files (x86)/MAVProxy/mavproxy.exe" $options --cmd="$extra_cmd" $*
 else
     mavproxy.py $options --cmd="$extra_cmd" $*
