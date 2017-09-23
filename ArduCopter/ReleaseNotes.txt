@@ -1,5 +1,10 @@
 APM:Copter Release Notes:
 ------------------------------------------------------------------
+Copter 3.3.3 Geyer V3.7.3 23-Sep-2017
+Changes from Copter 3.3.3 Geyer V3.7.2
+1) Added missing #if FRAME statement for Compound-Heli
+2) Added events for ALTHOLD takeoff for error tracking
+------------------------------------------------------------------
 Copter 3.3.3 Geyer V3.7.2 7-July-2017
 Changes from Copter 3.3.3 Geyer V3.7.1
 1) Moved the setting of boost_in from Heli_Control_Stabilize to Get_pilot_desired_output
